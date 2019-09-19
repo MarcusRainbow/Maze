@@ -1,4 +1,5 @@
-from typing import List
+from typing import List, Set
+from random import randrange
 from RatInterface import Rat
 from SimpleRats import AlwaysLeftRat, RandomRat
 
@@ -60,7 +61,7 @@ class SimpleMaze:
         iterations = 0
 
         # set the last_pos such that the back path is the last in the first list
-        last_pos = len(self.all_edges[pos]) - 1
+        last_pos = self.all_edges[pos][-1]
         #print("pos=%i last_pos=%i" % (pos, last_pos))
 
         # keep going until the end
@@ -70,6 +71,8 @@ class SimpleMaze:
             edges = self.all_edges[pos]
 
             # one of these edges should point back to where we came from
+            if edges.count(last_pos) != 1:
+                print("Problem: no edge from %i to %i" % (pos, last_pos))
             back = edges.index(last_pos)
 
             # get the rat to choose a direction
@@ -95,8 +98,8 @@ class SimpleMaze:
         return iterations            
 
 # Validates that we have an edge (and if necessary inserts one)
-def ensure_edge(edges: List[List[int]], edge_from: int, edge_to: int):
-    node = edges[edge_from]
+def ensure_edge(maze: List[List[int]], edge_from: int, edge_to: int):
+    node = maze[edge_from]
     count = node.count(edge_to)
     if count == 1:
         return      # already have this edge. Nothing more to do
@@ -105,6 +108,58 @@ def ensure_edge(edges: List[List[int]], edge_from: int, edge_to: int):
 
     # We need this edge. Append it (no attempt to avoid crossing paths)
     node.append(edge_to)
+
+# Creates a random maze with the specified number of nodes.
+def random_maze(node_count: int) -> List[List[int]]:
+    # Do NOT write maze = [[]] * node_count as this makes all list elements the same memory! 
+    maze = [[] for y in range(node_count)]
+    
+    # Remember all the nodes that connect to the origin. So far, just
+    # contains the origin, which is zero by definition.
+    accessible = { 0 }
+
+    # First do a random walk until we hit the end. There may be loops,
+    # but we don't worry about that. Just make sure there are no duplicate
+    # edges. Also, create bidirectional edges as we go.
+    edge_from = 0
+    while edge_from != node_count:
+        edge_to = randrange(0, node_count + 1)
+        add_bidirectional_edges(maze, accessible, edge_from, edge_to)
+        edge_from = edge_to
+    
+    # We now have a working maze, but not a very interesting one, in that it
+    # just has one random path from start to end. Add some blind alleys and
+    # ensure that every node has at least one edge, which somehow connects to
+    # the original random walk, hence the start (and the end)
+    for i in range(node_count):
+        if not (i in accessible):
+            # random walk from i until we hit the accessible set
+            new_path = { i }
+            edge_from = i
+            while not (edge_from in accessible):
+                edge_to = randrange(0, node_count)   # avoid the exit
+                add_bidirectional_edges(maze, new_path, edge_from, edge_to)
+                edge_from = edge_to
+
+            # all these nodes are now accessible
+            accessible.update(new_path)
+    
+    # We now have a maze with some blind alleys and all nodes are accessible
+    return maze
+
+# Adds (or at least ensures the existence of) bidirectional edges, and adds
+# the end node to a set of accessible nodes
+def add_bidirectional_edges(
+    maze: List[List[int]], 
+    accessible: Set[int], 
+    edge_from: int, 
+    edge_to: int):
+
+    if (edge_to != edge_from):
+        ensure_edge(maze, edge_from, edge_to)
+        if edge_to != len(maze):    # do not need back path from the exit
+            ensure_edge(maze, edge_to, edge_from)
+        accessible.add(edge_to)
 
 def test_fill_back_steps():
     maze = SimpleMaze([[1, 3], [2], [3, 0]], True)
@@ -136,9 +191,32 @@ def test_random_rat():
     print("test_random_rat solved in %i iterations" % iter)
     assert(iter > 0 and iter < MAX_ITER)
 
+def test_big_maze():
+    rat = RandomRat()
+    maze = SimpleMaze([[5, 3], [6], [5, 3, 17, 14, 13, 20], 
+        [2, 0, 4, 14, 13, 5, 17, 12], [7, 3], [0, 14, 9, 2, 6, 3],
+        [5, 13, 1], [8, 4, 19, 10], [14, 7], [14, 5, 17], [7, 13], 
+        [15, 16], [3, 15], [6, 17, 10, 3, 16, 2], [5, 9, 2, 8, 3, 19], 
+        [12, 11, 18], [11, 13], [13, 2, 9, 3], [15], [14, 7]], False)
+    MAX_ITER = 1000
+    iter = maze.solve(rat, MAX_ITER)
+    print("test_big_maze solved in %i iterations" % iter)
+    assert(iter > 0 and iter < MAX_ITER)
+
+
+def test_random_maze():
+    maze = SimpleMaze(random_maze(20), False)
+    rat = RandomRat()
+    MAX_ITER = 1000
+    iter = maze.solve(rat, MAX_ITER)
+    print("test_random_maze solved in %i iterations" % iter)
+    assert(iter > 0 and iter < MAX_ITER)
+
 if __name__ == "__main__":
     test_fill_back_steps()
     test_left_rat()
     test_left_rat_fail()
     test_random_rat()
+    test_big_maze()
+    test_random_maze()
     
