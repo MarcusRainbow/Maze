@@ -182,6 +182,12 @@ def allow_edge(allow_loops: float, edge_to: int, accessible: Set[int]) -> bool:
     else:
         return False
 
+# Generate a PDF file showing the maze as an undirected graph. Uses
+# GraphViz, which must be installed and on the PATH. Note that
+# the resulting graph shows only the nodes and their connections. The
+# ordering of edges around each node is determined by GraphViz itself.
+# You therefore cannot rely on this rendering to tell you whether to
+# turn left or right at each node.
 def render_graph(maze: List[List[int]], file_name):
     
     if len(maze) > 26:
@@ -208,9 +214,9 @@ def render_graph(maze: List[List[int]], file_name):
     id = str(chr(ord('A') + len(maze)))
     dot.node(id, "End (%s)" % id)
 
-    print(edges)
+    #print(edges)
     dot.edges(edges)
-    print(dot.source)
+    #print(dot.source)
     dot.render(file_name, view=True)
 
 def test_fill_back_steps():
@@ -257,7 +263,7 @@ def test_big_maze():
 
 def test_random_maze():
     maze = SimpleMaze(random_maze(20, 0.5), False)
-    print(maze)
+    #print(maze)
     render_graph(maze.maze(), "temp/random_maze")
     rat = RandomRat()
     MAX_ITER = 1000
@@ -267,7 +273,7 @@ def test_random_maze():
 
 def test_random_noloop_maze():
     maze = SimpleMaze(random_maze(20, 0.0), False)
-    print(maze)
+    #print(maze)
     render_graph(maze.maze(), "temp/random_noloop_maze")
     rat = AlwaysLeftRat()
     MAX_ITER = 1000
