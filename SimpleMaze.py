@@ -2,6 +2,7 @@ from typing import List, Set
 from random import randrange, shuffle, random
 from RatInterface import Rat
 from SimpleRats import AlwaysLeftRat, RandomRat
+from Localizer import Localizer, NonLocalLocalizer, OneDimensionalLocalizer, TwoDimensionalOneStepLocalizer
 from graphviz import Graph
 
 # A simple maze is a vector of vectors of edges. It supports one
@@ -111,8 +112,9 @@ def ensure_edge(maze: List[List[int]], edge_from: int, edge_to: int):
     node.append(edge_to)
 
 # Creates a random maze with the specified number of nodes.
-def random_maze(node_count: int, allow_loops: float) -> List[List[int]]:
-    # Do NOT write maze = [[]] * node_count as this makes all list elements the same memory! 
+def random_maze(allow_loops: float, local: Localizer) -> List[List[int]]:
+    # Do NOT write maze = [[]] * node_count as this makes all list elements the same memory!
+    node_count = local.node_count()
     maze = [[] for y in range(node_count)]
     
     # Remember all the nodes that connect to the origin. So far, just
@@ -124,7 +126,7 @@ def random_maze(node_count: int, allow_loops: float) -> List[List[int]]:
     # edges. Also, create bidirectional edges as we go.
     edge_from = 0
     while edge_from != node_count:
-        edge_to = randrange(0, node_count + 1)
+        edge_to = local.random_step(edge_from, True)
         add_bidirectional_edges(maze, accessible, edge_from, edge_to, allow_loops)
         edge_from = edge_to
     
@@ -138,7 +140,7 @@ def random_maze(node_count: int, allow_loops: float) -> List[List[int]]:
             new_path = { i }
             edge_from = i
             while not (edge_from in accessible):
-                edge_to = randrange(0, node_count)   # avoid the exit
+                edge_to = local.random_step(edge_from, False)   # avoid the exit
                 add_bidirectional_edges(maze, new_path, edge_from, edge_to, allow_loops)
                 edge_from = edge_to
 
@@ -262,7 +264,7 @@ def test_big_maze():
     assert(iter > 0 and iter < MAX_ITER)
 
 def test_random_maze():
-    maze = SimpleMaze(random_maze(20, 0.5), False)
+    maze = SimpleMaze(random_maze(0.5, NonLocalLocalizer(25)), False)
     #print(maze)
     render_graph(maze.maze(), "temp/random_maze")
     rat = RandomRat()
@@ -272,13 +274,33 @@ def test_random_maze():
     assert(iter > 0 and iter < MAX_ITER)
 
 def test_random_noloop_maze():
-    maze = SimpleMaze(random_maze(20, 0.0), False)
+    maze = SimpleMaze(random_maze(0.0, NonLocalLocalizer(25)), False)
     #print(maze)
     render_graph(maze.maze(), "temp/random_noloop_maze")
     rat = AlwaysLeftRat()
     MAX_ITER = 1000
     iter = maze.solve(rat, MAX_ITER)
     print("test_random_noloop_maze solved in %i iterations" % iter)
+    assert(iter > 0 and iter < MAX_ITER)
+
+def test_random_1d_maze():
+    maze = SimpleMaze(random_maze(0.5, OneDimensionalLocalizer(25, 5)), False)
+    #print(maze)
+    render_graph(maze.maze(), "temp/random_1d_maze")
+    rat = RandomRat()
+    MAX_ITER = 1000
+    iter = maze.solve(rat, MAX_ITER)
+    print("test_random_1d_maze solved in %i iterations" % iter)
+    assert(iter > 0 and iter < MAX_ITER)
+
+def test_random_2d_maze():
+    maze = SimpleMaze(random_maze(0.1, TwoDimensionalOneStepLocalizer(25, 5)), False)
+    #print(maze)
+    render_graph(maze.maze(), "temp/random_2d_maze")
+    rat = RandomRat()
+    MAX_ITER = 1000
+    iter = maze.solve(rat, MAX_ITER)
+    print("test_random_2d_maze solved in %i iterations" % iter)
     assert(iter > 0 and iter < MAX_ITER)
 
 if __name__ == "__main__":
@@ -289,4 +311,5 @@ if __name__ == "__main__":
     test_big_maze()
     test_random_maze()
     test_random_noloop_maze()
-    
+    test_random_1d_maze()
+    test_random_2d_maze()
