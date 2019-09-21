@@ -1,7 +1,8 @@
 from typing import List, Set
-from random import randrange
+from random import randrange, shuffle, random
 from RatInterface import Rat
 from SimpleRats import AlwaysLeftRat, RandomRat
+from graphviz import Graph
 
 # A simple maze is a vector of vectors of edges. It supports one
 # rat at a time. It has one start and one end. WLOG, the start is
@@ -110,7 +111,7 @@ def ensure_edge(maze: List[List[int]], edge_from: int, edge_to: int):
     node.append(edge_to)
 
 # Creates a random maze with the specified number of nodes.
-def random_maze(node_count: int) -> List[List[int]]:
+def random_maze(node_count: int, allow_loops: float) -> List[List[int]]:
     # Do NOT write maze = [[]] * node_count as this makes all list elements the same memory! 
     maze = [[] for y in range(node_count)]
     
@@ -124,7 +125,7 @@ def random_maze(node_count: int) -> List[List[int]]:
     edge_from = 0
     while edge_from != node_count:
         edge_to = randrange(0, node_count + 1)
-        add_bidirectional_edges(maze, accessible, edge_from, edge_to)
+        add_bidirectional_edges(maze, accessible, edge_from, edge_to, allow_loops)
         edge_from = edge_to
     
     # We now have a working maze, but not a very interesting one, in that it
@@ -138,32 +139,83 @@ def random_maze(node_count: int) -> List[List[int]]:
             edge_from = i
             while not (edge_from in accessible):
                 edge_to = randrange(0, node_count)   # avoid the exit
-                add_bidirectional_edges(maze, new_path, edge_from, edge_to)
+                add_bidirectional_edges(maze, new_path, edge_from, edge_to, allow_loops)
                 edge_from = edge_to
 
             # all these nodes are now accessible
             accessible.update(new_path)
     
-    # We now have a maze with some blind alleys and all nodes are accessible
+    # We now have a maze with some blind alleys and all nodes are accessible.
+    # Shuffle the edges in each node (we do not want the first edge to always
+    # be the one that leads to the exit) and return it.
+    for node in maze:
+        shuffle(node)
     return maze
 
 # Adds (or at least ensures the existence of) bidirectional edges, and adds
-# the end node to a set of accessible nodes
+# the end node to a set of accessible nodes. If allow_loops is zero, we prevent
+# loops (avoid adding an edge that leads to an accessible node). If it is one,
+# we allow them. If between zero and one, we randomly allow them or not.
 def add_bidirectional_edges(
     maze: List[List[int]], 
     accessible: Set[int], 
     edge_from: int, 
-    edge_to: int):
+    edge_to: int,
+    allow_loops: float):
 
-    if (edge_to != edge_from):
+    if edge_to != edge_from and allow_edge(allow_loops, edge_to, accessible):
         ensure_edge(maze, edge_from, edge_to)
         if edge_to != len(maze):    # do not need back path from the exit
             ensure_edge(maze, edge_to, edge_from)
         accessible.add(edge_to)
 
+def allow_edge(allow_loops: float, edge_to: int, accessible: Set[int]) -> bool:
+    EPSILON = 1e-10
+    if allow_loops > 1.0 - EPSILON:
+        return True
+    elif not (edge_to in accessible):
+        return True
+    elif allow_loops < EPSILON:
+        return False
+    elif random() < allow_loops:
+        return True
+    else:
+        return False
+
+def render_graph(maze: List[List[int]], file_name):
+    
+    if len(maze) > 26:
+        raise Exception("render_graph can only handle up to 26 nodes")
+
+    dot = Graph()
+    this = 0
+    edges = []
+    for node in maze:
+        id = str(chr(ord('A') + this))
+        if this == 0:
+            dot.node(id, "Start (A)")
+        else:
+            dot.node(id, id)
+        for edge in node:
+            # avoid duplicating edges by only showing to > from
+            if edge > this:
+                edge_str = id + str(chr(ord('A') + edge))
+                edges.append(edge_str)
+        this = this + 1
+
+    # The final node is not in the list, as it exists only as the destination
+    # of one or more edge
+    id = str(chr(ord('A') + len(maze)))
+    dot.node(id, "End (%s)" % id)
+
+    print(edges)
+    dot.edges(edges)
+    print(dot.source)
+    dot.render(file_name, view=True)
+
 def test_fill_back_steps():
     maze = SimpleMaze([[1, 3], [2], [3, 0]], True)
-    print("test_fill_back_steps: %s", maze)
+    print("test_fill_back_steps: %s" % maze)
     assert(maze.maze() == [[1, 3, 2], [2, 0], [3, 0, 1]])
 
 def test_left_rat():
@@ -203,13 +255,24 @@ def test_big_maze():
     print("test_big_maze solved in %i iterations" % iter)
     assert(iter > 0 and iter < MAX_ITER)
 
-
 def test_random_maze():
-    maze = SimpleMaze(random_maze(20), False)
+    maze = SimpleMaze(random_maze(20, 0.5), False)
+    print(maze)
+    render_graph(maze.maze(), "temp/random_maze")
     rat = RandomRat()
     MAX_ITER = 1000
     iter = maze.solve(rat, MAX_ITER)
     print("test_random_maze solved in %i iterations" % iter)
+    assert(iter > 0 and iter < MAX_ITER)
+
+def test_random_noloop_maze():
+    maze = SimpleMaze(random_maze(20, 0.0), False)
+    print(maze)
+    render_graph(maze.maze(), "temp/random_noloop_maze")
+    rat = AlwaysLeftRat()
+    MAX_ITER = 1000
+    iter = maze.solve(rat, MAX_ITER)
+    print("test_random_noloop_maze solved in %i iterations" % iter)
     assert(iter > 0 and iter < MAX_ITER)
 
 if __name__ == "__main__":
@@ -219,4 +282,5 @@ if __name__ == "__main__":
     test_random_rat()
     test_big_maze()
     test_random_maze()
+    test_random_noloop_maze()
     
