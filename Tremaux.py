@@ -11,7 +11,7 @@ class TremauxMazeInfo(MazeInfo):
         self.back = -1
         self.started = False
 
-    def set_pos(self, pos: int, back: int):
+    def set_pos(self, pos: int, back: int, _rat: int):
         self.position = pos
         self.back = back
 

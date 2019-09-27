@@ -14,37 +14,7 @@ class SimpleMaze:
     # Initialise with a set of edges. If fill_back_steps is true, we
     # generate backward edges to make it an undirected graph.
     def __init__(self, edges: List[List[int]], fill_back_steps: bool):
-
-        # validate and optionally fill back steps
-        end = len(edges)
-        if end < 1:
-            raise Exception("Must be at least one node")
-
-        has_end = False
-        edge_from = 0
-        for node in edges:
-            if len(set(node)) != len(node):
-                raise Exception("Must not have duplicate edges")
-            for edge_to in node:
-                if edge_to == end:
-                    has_end = True  # OK to have multiple routes to end
-                elif edge_to > end:
-                    raise Exception("Edge out of range")
-                elif edge_to == edge_from:
-                    raise Exception("Not allowed to have edges to self")
-                elif fill_back_steps:
-                    # make sure we have a return edge matching this
-                    ensure_edge(edges, edge_to, edge_from)
-            
-            # next node
-            edge_from = edge_from + 1
-
-        # We validate that at least one node has an edge leading to the
-        # exit. However, we do not currently check that there is a clear
-        # path to any such node.
-        if not has_end:
-            raise Exception("No edge to the end node")
-
+        validate_edges(edges, fill_back_steps)
         self.all_edges = edges
 
     def __str__(self):
@@ -77,9 +47,10 @@ class SimpleMaze:
                 print("Problem: no edge from %i to %i" % (pos, last_pos))
             back = edges.index(last_pos)
 
-            # supply maze info for rats that need it
+            # supply maze info for rats that need it. There is only one rat,
+            # so supply rat number zero
             if info:
-                info.set_pos(pos, back)
+                info.set_pos(pos, back, 0)
 
             # get the rat to choose a direction
             num_edges = len(edges)
@@ -99,6 +70,37 @@ class SimpleMaze:
         # iterations with a valid exit, but this is unlikely and does not
         # matter much).
         return iterations            
+
+# validate and optionally fill back steps
+def validate_edges(edges: List[List[int]], fill_back_steps: bool):
+    end = len(edges)
+    if end < 1:
+        raise Exception("Must be at least one node")
+
+    has_end = False
+    edge_from = 0
+    for node in edges:
+        if len(set(node)) != len(node):
+            raise Exception("Must not have duplicate edges")
+        for edge_to in node:
+            if edge_to == end:
+                has_end = True  # OK to have multiple routes to end
+            elif edge_to > end:
+                raise Exception("Edge out of range")
+            elif edge_to == edge_from:
+                raise Exception("Not allowed to have edges to self")
+            elif fill_back_steps:
+                # make sure we have a return edge matching this
+                ensure_edge(edges, edge_to, edge_from)
+        
+        # next node
+        edge_from = edge_from + 1
+
+    # We validate that at least one node has an edge leading to the
+    # exit. However, we do not currently check that there is a clear
+    # path to any such node.
+    if not has_end:
+        raise Exception("No edge to the end node")
 
 # Validates that we have an edge (and if necessary inserts one)
 def ensure_edge(maze: List[List[int]], edge_from: int, edge_to: int):
