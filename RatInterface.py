@@ -4,8 +4,9 @@ class MazeInfo(ABC):
     # Allows the maze to set the position and direction of the
     # current node.
     @abstractmethod
-    def set_pos(self, pos: int, back: int):
+    def set_pos(self, pos: int, back: int, rat: int):
         pass
+
 
 class Rat(ABC):
 
