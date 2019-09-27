@@ -1,19 +1,19 @@
-from RatInterface import Rat
+from RatInterface import Rat, MazeInfo
 from SimpleMaze import SimpleMaze
 
 class InteractiveRat(Rat):
 
     # The maze asks which way we want to turn. We ask the user.
-    def turn(self, directions: int) -> int:
+    def turn(self, directions: int, _: MazeInfo) -> int:
         msg = ""
         if directions == 0:
-            msg = "You are stuck. Type 0 to wait or 1 to quit: "
+            msg = "You are stuck. Type 0 to quit: "
         elif directions == 1:
-            msg = "Dead end. Type 0 to wait, 1 to reverse or 2 to quit: "
+            msg = "Dead end. Type 0 to reverse or 1 to quit: "
         elif directions == 2:
-            msg = "Corridor. Type 0 to wait, 1 to go forward, 2 to reverse or 3 to quit: "
+            msg = "Corridor. Type 0 to reverse, 1 to go forward, or 2 to quit: "
         else:
-            msg = "%i exits. Type 0 to wait, %i to quit, or choose an exit: " % (directions, directions + 1)
+            msg = "%i exits. Type 0 to reverse, 1 to go left, etc: " % directions
         
         turn = input(msg)
         return int(turn)

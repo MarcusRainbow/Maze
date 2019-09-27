@@ -77,9 +77,7 @@ class TremauxRat(Rat):
     # The maze asks which way we want to turn. We use Tremaux's
     # algorithm to determine which way to go.
     def turn(self, directions: int, info: MazeInfo) -> int:
-        turn = info.choose_turn(directions)
-        # convert to the slightly weird convention of RatInterface
-        return turn if turn > 0 else directions
+        return info.choose_turn(directions)
 
 def test_tremaux_rat():
     SIZE = 25
