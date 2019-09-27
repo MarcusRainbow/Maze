@@ -1,6 +1,6 @@
-from typing import List, Set
+from typing import List, Set, Optional
 from random import randrange, shuffle, random
-from RatInterface import Rat
+from RatInterface import Rat, MazeInfo
 from SimpleRats import AlwaysLeftRat, RandomRat
 from Localizer import Localizer, NonLocalLocalizer, OneDimensionalLocalizer, TwoDimensionalOneStepLocalizer
 from graphviz import Graph
@@ -56,7 +56,7 @@ class SimpleMaze:
     # Tries to solve the maze. Returns the number of iterations used.
     # If it exceeds max_iterations, returns max_iterations + 1. If it
     # fails for any other reason, returns 0.
-    def solve(self, rat: Rat, max_iterations: int) -> bool:
+    def solve(self, rat: Rat, max_iterations: int, info: Optional[MazeInfo] = None) -> bool:
         
         # always start from the beginning
         pos = 0
@@ -77,13 +77,14 @@ class SimpleMaze:
                 print("Problem: no edge from %i to %i" % (pos, last_pos))
             back = edges.index(last_pos)
 
+            # supply maze info for rats that need it
+            if info:
+                info.set_pos(pos, back)
+
             # get the rat to choose a direction
             num_edges = len(edges)
-            turn = rat.turn(num_edges)
-            if turn == 0:
-                iterations = iterations + 1
-                continue
-            elif (turn > num_edges) or (turn < 0):
+            turn = rat.turn(num_edges, info)
+            if (turn >= num_edges) or (turn < 0):
                 return 0    # give up
             
             # going in some direction
