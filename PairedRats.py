@@ -9,6 +9,7 @@ from Localizer import OneDimensionalLocalizer
 class PairedRatMazeInfo(MazeInfo):
     def __init__(self):
         self.positions = [-1] * 2
+        self.back = [-1] * 2
         self.hit_rat = [False] * 2
         self.rat = 0
 
@@ -17,9 +18,10 @@ class PairedRatMazeInfo(MazeInfo):
             raise Exception("Only two rats allowed with PairedRat")
         self.rat = rat
         self.positions[rat] = pos
+        self.back[rat] = back
         
-        # have we landed on the other rat?
-        if self.positions[0] == self.positions[1]:
+        # have we landed on the other rat and is it going the same way as us?
+        if self.positions[0] == self.positions[1] and self.back[0] == self.back[1]:
             self.hit_rat = [True] * 2
 
     # Tests whether the current rat has hit another rat. Always resets
