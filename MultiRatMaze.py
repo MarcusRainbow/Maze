@@ -56,8 +56,6 @@ class MultiRatMaze:
 
             # any rats that are not skipping this turn
             for (i, (rat, speed)) in enumerate(rats):
-                if iterations % speed != 0:
-                    continue    # skip a turn for this rat
 
                 # find the edges from the current node
                 edges = self.all_edges[pos[i]]
@@ -67,12 +65,16 @@ class MultiRatMaze:
                     print("Problem: no edge from %i to %i" % (pos[i], last_pos[i]))
                 back = edges.index(last_pos[i])
 
-                # supply maze info for rats that need it
-                if info:
-                    info.set_pos(pos[i], back, i)
+                # update maze info for rats that need it, but only the first time
+                # we get to here (the time after iterations % speed == 0)
+                num_edges = len(edges)
+                if info and (iterations + speed - 1) % speed == 0:
+                    info.set_pos(pos[i], back, num_edges, rat)
+
+                if iterations % speed != 0:
+                    continue    # skip a turn for this rat
 
                 # get the rat to choose a direction
-                num_edges = len(edges)
                 turn = rat.turn(num_edges, info)
                 if (turn >= num_edges) or (turn < 0):
                     raise Exception("Rat turn out of range")

@@ -49,11 +49,11 @@ class SimpleMaze:
 
             # supply maze info for rats that need it. There is only one rat,
             # so supply rat number zero
+            num_edges = len(edges)
             if info:
-                info.set_pos(pos, back, 0)
+                info.set_pos(pos, back, num_edges, rat)
 
             # get the rat to choose a direction
-            num_edges = len(edges)
             turn = rat.turn(num_edges, info)
             if (turn >= num_edges) or (turn < 0):
                 return 0    # give up
