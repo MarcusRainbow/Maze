@@ -1,12 +1,12 @@
 from abc import ABC, abstractmethod
 
 class MazeInfo(ABC):
-    # Allows the maze to set the position and direction of the
-    # current node.
+    # Allows the maze to set the position of the current node. Also
+    # pass in the direction we entered the current node (back), the
+    # number of exits from the current node, and the current rat.
     @abstractmethod
-    def set_pos(self, pos: int, back: int, rat: int):
+    def set_pos(self, pos: int, back: int, directions: int, rat: 'Rat'):
         pass
-
 
 class Rat(ABC):
 

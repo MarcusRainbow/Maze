@@ -11,7 +11,7 @@ class TremauxMazeInfo(MazeInfo):
         self.back = -1
         self.started = False
 
-    def set_pos(self, pos: int, back: int, _rat: int):
+    def set_pos(self, pos: int, back: int, _directions: int, _rat: int):
         self.position = pos
         self.back = back
 
@@ -86,7 +86,7 @@ def test_tremaux_rat():
     render_graph(maze.maze(), "temp/tremaux_maze")
     rat = TremauxRat()
     info = TremauxMazeInfo()
-    MAX_ITER = 30
+    MAX_ITER = 100
     iter = maze.solve(rat, MAX_ITER, info)
     print("test_tremaux_rat solved in %i iterations" % iter)
     assert(iter > 0 and iter < MAX_ITER)

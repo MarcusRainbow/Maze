@@ -10,7 +10,7 @@ class DijkstrasMazeInfo(MazeInfo):
         self.position = -1
         self.direction = -1
 
-    def set_pos(self, pos: int, back: int, _rat: int):
+    def set_pos(self, pos: int, back: int, _directions: int, _rat: Rat):
         self.position = pos
         self.back = back
 
