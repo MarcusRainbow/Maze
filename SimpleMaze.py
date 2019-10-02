@@ -201,8 +201,11 @@ def render_graph(maze: List[List[int]], file_name):
     dot = Graph()
     this = 0
     edges = []
+    unknowns = 0
+    A = ord('A')
+    a = ord('a')
     for node in maze:
-        id = str(chr(ord('A') + this))
+        id = str(chr(A + this))
         if this == 0:
             dot.node(id, "Start (A)")
         else:
@@ -210,13 +213,19 @@ def render_graph(maze: List[List[int]], file_name):
         for edge in node:
             # avoid duplicating edges by only showing to > from
             if edge > this:
-                edge_str = id + str(chr(ord('A') + edge))
+                edge_str = id + str(chr(A + edge))
                 edges.append(edge_str)
+            elif edge < 0:
+                unknown_id = str(chr(a + unknowns))
+                unknowns = unknowns + 1
+                edge_str = id + unknown_id
+                edges.append(edge_str)
+                dot.node(unknown_id, "Unknown")
         this = this + 1
 
     # The final node is not in the list, as it exists only as the destination
     # of one or more edge
-    id = str(chr(ord('A') + len(maze)))
+    id = str(chr(A + len(maze)))
     dot.node(id, "End (%s)" % id)
 
     #print(edges)
