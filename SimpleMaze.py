@@ -1,4 +1,4 @@
-from typing import List, Set, Optional
+from typing import List, Set, Optional, Tuple
 from random import randrange, shuffle, random
 from RatInterface import Rat, MazeInfo
 from SimpleRats import AlwaysLeftRat, RandomRat
@@ -233,10 +233,118 @@ def render_graph(maze: List[List[int]], file_name):
     #print(dot.source)
     dot.render(file_name, view=True)
 
+# Test whether two mazes are the same. The nodes may not be in the same
+# order, and the edges may be rotated, but the topology should be the same.
+# Handle negative nodes as a wildcard, matching anything.
+def are_equal_mazes(left: List[List[int]], right: List[List[int]]) -> bool:
+    #print("are_equal_mazes():")
+    #print(left)
+    #print(right)
+    return are_nodes_equal(left, right, 0, 0, -1, -1, set())
+
+def are_nodes_equal(
+    left: List[List[int]], 
+    right: List[List[int]],
+    left_node: int,
+    right_node: int,
+    left_back: int,
+    right_back: int,
+    already_checked:  Set[Tuple[int, int]]) -> bool:
+
+    #print("are_nodes_equal(%i, %i, %i, %i)"
+    #    % (left_node, right_node, left_back, right_back))
+
+    # Treat negative nodes as wildcards, matching anything
+    if left_node < 0 or right_node < 0:
+        return True
+
+    # Only match nodes that are out of range if both are
+    left_ended = left_node >= len(left)
+    right_ended = right_node >= len(right)
+    if left_ended != right_ended:
+        #print("not equal: one of %i and %i is the end" % (left_node, right_node))
+        return False
+    elif left_ended:
+        return True
+
+    # Avoid recursing for ever if there are loops in the mazes
+    if (left_node, right_node) in already_checked:
+        return True
+    already_checked.add((left_node, right_node))
+
+    # Got two real nodes. Make sure they have the same number of edges
+    left_edges = left[left_node]
+    right_edges = right[right_node]
+    edge_count = len(left_edges)
+    if edge_count != len(right_edges):
+        #print("not equal: %i has %i edges and %i has %i" % (left_node, len(left_edges), right_node, len(right_edges)))
+        return False
+
+    # May both be empty (unlikely, as this would make a very trivial maze)
+    if not left_edges:
+        return True
+
+    # We rely on the back pointer to tell us the relative rotation.
+    if left_back >= 0 and left_back in left_edges and right_back >= 0 and right_back in right_edges:
+        left_index = left_edges.index(left_back)
+        right_index = right_edges.index(right_back)
+        rotation = right_index - left_index
+        return are_edges_equal(left_edges, right_edges, right, left, 
+            left_node, right_node, rotation, already_checked)
+
+    # if no back-pointer defined, just try all the possibilities
+    else:
+        for r in range(edge_count):
+            if are_edges_equal(left_edges, right_edges, right, left,
+                left_node, right_node, r, already_checked):
+                return True
+        #print("not equal: no possible rotation of %i and %i works" % (left_node, right_node))
+        return False
+    
+def are_edges_equal(
+    left_edges: List[int],
+    right_edges: List[int],
+    left: List[List[int]], 
+    right: List[List[int]], 
+    left_node: int,
+    right_node: int,
+    rotation: int,
+    already_checked: Set[Tuple[int, int]]) -> bool:
+
+    #print("are_edges_equal(%s, %s, %i, %i, %i)"
+    #    % (left_edges, right_edges, left_node, right_node, rotation))
+
+    edge_count = len(left_edges)
+    assert(edge_count == len(right_edges))
+
+    for i, left_edge in enumerate(left_edges):
+        right_edge = right_edges[(i + rotation) % edge_count]
+        if not are_nodes_equal(right, left, left_edge, right_edge, 
+            left_node, right_node, already_checked):
+            return False
+    
+    return True
+
 def test_fill_back_steps():
     maze = SimpleMaze([[1, 3], [2], [3, 0]], True)
     print("test_fill_back_steps: %s" % maze)
     assert(maze.maze() == [[1, 3, 2], [2, 0], [3, 0, 1]])
+
+def test_equal_mazes():
+    maze1 = SimpleMaze([[1, 3], [2], [0, 3]], True)
+    maze2 = SimpleMaze([[2, 3], [0, 3], [1]], True)
+    #print(maze1.maze())
+    #print(maze2.maze())
+    assert(are_equal_mazes(maze1.maze(), maze2.maze()))
+    print("test_equal_mazes succeeded")
+
+def test_unequal_mazes():
+    maze1 = SimpleMaze([[1, 3, 2], [2, 0], [0, 3, 1]], False)
+    maze2 = SimpleMaze([[2, 3, 1], [3, 0, 2], [1, 0]], False)
+    #print(maze1.maze())
+    #print(maze2.maze())
+    assert(not are_equal_mazes(maze1.maze(), maze2.maze()))
+    print("test_unequal_mazes succeeded")
 
 def test_left_rat():
     rat = AlwaysLeftRat()
@@ -317,6 +425,8 @@ def test_random_2d_maze():
 
 if __name__ == "__main__":
     test_fill_back_steps()
+    test_equal_mazes()
+    test_unequal_mazes()
     test_left_rat()
     test_left_rat_fail()
     test_random_rat()

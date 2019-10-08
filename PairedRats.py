@@ -84,7 +84,7 @@ def test_paired_rats_2():
     # before setting the hit flags. This can lead to one rat reversing twice,
     # and not the other
     maze = MultiRatMaze([[1], [0, 2, 3, 4], [4, 1, 5], [1, 5, 4], [3, 1, 5, 2], [3, 6, 2, 4]], False)
-    #render_graph(maze.maze(), "paired2")
+    #render_graph(maze.maze(), "temp/paired2")
     MAX_ITER = 100
     rats = [(PairedAlwaysLeftRat(0), 2), (PairedAlwaysLeftRat(1), 3)]
     iter = maze.solve(rats, MAX_ITER, False, PairedRatMazeInfo())
@@ -96,7 +96,7 @@ def test_paired_rats_3():
     # that every other step the two rats march in step, so Alice catches up
     # with Bert twice on the same loop, reversing twice.
     maze = MultiRatMaze([[2, 1], [4, 3, 0], [3, 0, 4, 5], [5, 1, 6, 4, 2], [2, 3, 1], [2, 3]], False)
-    #render_graph(maze.maze(), "paired3")
+    #render_graph(maze.maze(), "temp/paired3")
     MAX_ITER = 150
     rats = [(PairedAlwaysLeftRat(0), 2), (PairedAlwaysLeftRat(1), 4)]
     iter = maze.solve(rats, MAX_ITER, False, PairedRatMazeInfo())
@@ -108,7 +108,7 @@ def test_paired_rats_4():
     # interlocking loops, and the rats settle into a repeating ping-pong
     # between the two.
     maze = MultiRatMaze([[3, 1], [0], [4, 5], [5, 0], [2, 5], [6, 2, 3, 4]], False)
-    #render_graph(maze.maze(), "paired4")
+    #render_graph(maze.maze(), "temp/paired4")
     MAX_ITER = 150
     rats = [(PairedAlwaysLeftRat(0), 2), (PairedAlwaysLeftRat(1), 4)]
     iter = maze.solve(rats, MAX_ITER, False, PairedRatMazeInfo())
@@ -120,7 +120,7 @@ def test_paired_rats_5():
     # interlocking loops, and the rats settle into a repeating ping-pong
     # between them.
     maze = MultiRatMaze([[1, 2, 3], [4, 0, 2], [1, 4, 3, 0], [5, 0, 2, 4], [5, 3, 1, 6, 2], [4, 3]], False)
-    render_graph(maze.maze(), "paired5")
+    render_graph(maze.maze(), "temp/paired5")
     MAX_ITER = 150
     rats = [(PairedAlwaysLeftRat(0), 1), (PairedAlwaysLeftRat(1), 2)]
     iter = maze.solve(rats, MAX_ITER, False, PairedRatMazeInfo())
