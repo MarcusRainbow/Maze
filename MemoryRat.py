@@ -1,8 +1,8 @@
 from random import randrange, seed
-from typing import List, Set
+from typing import List, Set, Dict
 from copy import deepcopy
 from RatInterface import Rat, MazeInfo
-from SimpleMaze import SimpleMaze, random_maze, render_graph
+from SimpleMaze import SimpleMaze, random_maze, render_graph, are_equal_mazes
 from Localizer import OneDimensionalLocalizer
 
 UNKNOWN = -1     # node that we have not yet visited
@@ -96,9 +96,198 @@ class MemoryRat(Rat):
         self.prev_node = self.next_node
         self.prev_edge = valid_exit
         self.next_node = current_node[valid_exit]
-        turn = (valid_exit - back + directions) % directions
+        turn = (valid_exit - back) % directions
         #print("  old node: stepping to %i (%i) back=%i" % (self.next_node, turn, back))
         return turn
+
+    # Merges the memories of two rats. Memories are merged with the
+    # assumption that both rats started in the same place, and are now in the same
+    # place. Neither rat has yet been asked to turn, which means that its
+    # current state is that its position is self.next_node (which may be UNKNOWN)
+    def merge(self, other: Rat, directions: int, tunnel: int):
+
+        # Nothing to do if we already agree.
+        if self.picture == other.picture:
+            return
+
+        #print("merge(%i, %i): self=%i other=%i" % (directions, tunnel, self.next_node, other.next_node))
+        #print(self.picture)
+        #print(other.picture)
+
+        # the mazes should be the same, as far as we can see (parts may be unknown
+        # in either or both)
+        my_old_picture = deepcopy(self.picture)
+        other_old_picture = deepcopy(other.picture)
+        assert(are_equal_mazes(my_old_picture, other_old_picture))
+
+        # For both our picture and the other picture, ensure that the
+        # next node is represented.
+        self.ensure_next_exists(directions)
+        other.ensure_next_exists(directions)
+
+        # Walk both pictures from the start, trying to find mappings
+        # between nodes in the two pictures. Then do the same from the end.
+        node_mapping: Dict[int, int] = {}
+        self.add_node_mapping(other, 0, 0, 0, node_mapping)
+        self.add_node_mapping(other, self.next_node, other.next_node, tunnel, node_mapping)
+
+        #print("node mapping: %s" % node_mapping)
+
+        # Walk both pictures from the start, adding nodes and edges that
+        # are known to other into self. Then do the same from the end.
+        traversed: Set[int] = set()
+        self.add_missing(other, 0, 0, 0, node_mapping, traversed)
+
+        #print("After adding missing to self: %s" % self.picture)
+
+        self.add_missing(other, self.next_node, other.next_node, tunnel, node_mapping, traversed)
+
+        # We have modified our own picture, given the information from the other Rat.
+        # Now do the same thing in reverse.
+        rev_mapping = { v: k for (k, v) in node_mapping.items() }
+        traversed = set()
+        other.add_missing(self, 0, 0, 0, rev_mapping, traversed)
+        other.add_missing(self, other.next_node, self.next_node, -tunnel, rev_mapping, traversed)
+
+        # both resulting mazes should still be equal
+        assert(are_equal_mazes(my_old_picture, self.picture))
+        assert(are_equal_mazes(other_old_picture, other.picture))
+
+    # Walk our picture and that of the other rat from the given node, finding
+    # mappings between any nodes that are common between the two. Mappings
+    # are expressed as other_node->this_node. The rotation parameter expresses
+    # the offset of the other_node's edges relative to this_node's edges.
+    def add_node_mapping(
+        self, other: Rat, 
+        this_node: int, other_node: int,
+        rotation: int,
+        mapping: Dict[int, int]):
+
+        # if this node is already mapped, we are finished
+        if other_node in mapping:
+            if mapping[other_node] != this_node:
+                raise Exception("TODO: we do not currently handle loops")
+            return
+
+        # add this node
+        mapping[other_node] = this_node
+
+        # recurse through any known edges
+        edges = self.picture[this_node]
+        other_edges = other.picture[other_node]
+        edge_count = len(edges)
+        assert(edge_count == len(other_edges))
+        for (i, subnode) in enumerate(edges):
+            other_subnode = other_edges[(i + rotation) % edge_count]
+            if subnode != UNKNOWN and other_subnode != UNKNOWN:
+                this_back = self.picture[subnode].index(this_node)
+                other_back = other.picture[other_subnode].index(other_node)
+                subrotation = other_back - this_back
+                self.add_node_mapping(other, subnode, other_subnode, subrotation, mapping)
+
+    def ensure_next_exists(self, directions: int):
+        # nothing to do if the next node already exists
+        if self.next_node != UNKNOWN:
+            return
+
+        # create a new node and point self.next_node at it
+        this_node = len(self.picture)
+        self.next_node = this_node
+        self.picture.append([UNKNOWN] * directions)
+        self.picture[this_node][0] = self.prev_node
+        if self.prev_node >= 0:
+            self.picture[self.prev_node][self.prev_edge] = this_node
+
+    # Modifies self, by adding any nodes or edges that are known to the
+    # other rat but not to us.
+    def add_missing(
+        self, other: 'MemoryRat', 
+        this_node: int, other_node: int,
+        rotation: int,
+        mapping: Dict[int, int],
+        traversed: Set[int]):
+
+        assert(this_node != UNKNOWN and other_node != UNKNOWN)
+
+        if this_node != mapping[other_node]:
+            raise Exception("TODO: we do not currently handle loops")
+
+        # If we have already handled this node, do not do so again
+        # (Avoid walking forever round loops)
+        if this_node in traversed:
+            return
+        traversed.add(this_node)
+
+        # If 'other' has edges that we do not know about, add them.
+        edges = self.picture[this_node]
+        other_edges = other.picture[other_node]
+        edge_count = len(edges)
+        assert(edge_count == len(other_edges))
+        #print("merging %s into %s with rotation %i" % (other_edges, edges, rotation))
+        for (i, subnode) in enumerate(edges):
+            other_subnode = other_edges[(i + rotation) % edge_count]
+            #print("merging %i into %i" % (other_subnode, subnode))
+            if other_subnode != UNKNOWN:
+                # if the other rat knows the node and we do not, add it
+                if subnode == UNKNOWN:
+                    # If we know the destination node, set it in our edges
+                    if other_subnode in mapping:
+                        #print("add missing edge %i=%i in edges %s" % (i, other_subnode, edges))
+                        edges[i] = mapping[other_subnode]
+                        self.fill_back_link(other, this_node, other_node, subnode, other_subnode, mapping)
+                    else:
+                        # Otherwise add a new node
+                        new_node = len(self.picture)
+                        #print("add missing node %i=%i in edges %s" % (i, new_node, edges))
+                        self.picture.append([UNKNOWN] * len(other.picture[other_subnode]))
+                        self.picture[new_node][0] = this_node
+                        edges[i] = new_node
+                        mapping[other_subnode] = new_node
+
+                # we now know the node, even if we did not before, so recurse
+                this_subnode = edges[i]
+                this_back = self.picture[this_subnode].index(this_node)
+                other_back = other.picture[other_subnode].index(other_node)
+                subrotation = other_back - this_back
+                self.add_missing(other, this_subnode, other_subnode, subrotation, mapping, traversed)
+
+    # This rat (Alice) has visited a node (this_subnode) before, but not from
+    # this same direction as other rat (Bert), who is visiting from Bert's
+    # equivalent of this_node (other_node). Bert's view of this_subnode is
+    # other_subnode. This function fills in Alice's back-link from
+    # this_subnode to this_node, corresponding to the already-present back-
+    # link from Bert's other_subnode to other_node.    
+    def fill_back_link(
+        self, 
+        other: 'MemoryRat',
+        this_node: int,
+        other_node: int,
+        this_subnode: int,
+        other_subnode: int,
+        mapping: Dict[int, int]):
+
+        # This is an entertainingly difficult problem. Let's call self Alice and
+        # other, Bert. Alice has already visited this_subnode from a different
+        # direction. We want to fill in the back-link to this_node, but we do not
+        # know which of the tunnels leading from this_subnode is the one leading
+        # back to this_node. We do know that Alice has never been along this tunnel,
+        # so it is marked as UNKNOWN. There are special cases where we are able to work it
+        # out:
+        #
+        # 1. Where there is only one UNKNOWN tunnel
+        # 2. Where Bert and Alice have been along the same tunnel as each
+        # other in this_subnode, so Alice can work out the rotation between
+        # Bert and Alice's worldviews.
+        # 3. Where there is only one possible way of fitting Bert's worldview
+        # into Alice's, by rotating Bert's pattern into Alice's.
+        #
+        # However, in general this is an insoluble problem. We have to leave
+        # the back_link as UNKNOWN. We could store somewhere the partial
+        # extra information that Bert has given us, though it is (I think)
+        # implicit in the maze without back-link, just hard to get at and use.
+        #
+        # TODO: for now, we always leave the back-link unfilled
+        print("fill_back_link not yet implemented")
 
 def test_memory_rat_no_loops():
     maze = SimpleMaze(random_maze(0.0, OneDimensionalLocalizer(25, 5)), False)
@@ -111,6 +300,7 @@ def test_memory_rat_no_loops():
     render_graph(maze.maze(), "temp/memory_maze")
     #print("final: %s" % rat.final_picture())
     render_graph(rat.final_picture(), "temp/memory_picture")
+    #assert(are_equal_mazes(rat.final_picture(), maze.maze()))
     print("test_memory_rat_no_loops solved in %i iterations" % iter)
     assert(iter > 0 and iter < MAX_ITER)
 
@@ -120,9 +310,24 @@ def test_memory_rat_loops():
     MAX_ITER = 100
     iter = maze.solve(rat, MAX_ITER)
     render_graph(maze.maze(), "temp/memory_maze_loops")
-    render_graph(rat.final_picture(), "temp/memory_picture_loops")
+    if len(rat.final_picture()) < 26:
+        render_graph(rat.final_picture(), "temp/memory_picture_loops")
+    #assert(are_equal_mazes(rat.final_picture(), maze.maze()))
     print("test_memory_rat_loops solved in %i iterations" % iter)
     assert(iter > 0 and iter < MAX_ITER)
+
+def test_merge():
+    pass
+    #alice = MemoryRat([[1], [0, 2], [1, -1, 3], [2]], 2, 2, 3)
+    #bert = MemoryRat([[1], [0, 2], [1, 3, -1], [2, 4, -1], [3]], 2, 1, 3)
+    #old_alice = deepcopy(alice.picture)
+    #old_bert = deepcopy(bert.picture)
+
+    #assert(are_equal_mazes(alice, bert))
+    #alice.merge(bert, 3, 1)
+    #assert(are_equal_mazes(alice, bert))
+    #assert(are_equal_mazes(alice, old_alice))
+    #assert(are_equal_mazes(bert, old_bert))
 
 if __name__ == "__main__":
     test_memory_rat_no_loops()
