@@ -291,44 +291,34 @@ class MemoryRat(Rat):
 
 def test_memory_rat_no_loops():
     maze = SimpleMaze(random_maze(0.0, OneDimensionalLocalizer(25, 5)), False)
-    #print(maze)
-    #seed(1000)
-    #maze = SimpleMaze([[1], [0, 4, 3], [3], [5, 1, 2], [7, 1], [3, 6], [5], [10, 4, 9], [9], [7, 8]], False)
     rat = MemoryRat()
-    MAX_ITER = 100
+    MAX_ITER = 1000
     iter = maze.solve(rat, MAX_ITER)
-    render_graph(maze.maze(), "temp/memory_maze")
-    #print("final: %s" % rat.final_picture())
-    render_graph(rat.final_picture(), "temp/memory_picture")
-    #assert(are_equal_mazes(rat.final_picture(), maze.maze()))
+    #render_graph(maze.maze(), "temp/memory_maze")
+    #render_graph(rat.final_picture(), "temp/memory_picture")
+    assert(are_equal_mazes(rat.final_picture(), maze.maze()))
     print("test_memory_rat_no_loops solved in %i iterations" % iter)
     assert(iter > 0 and iter < MAX_ITER)
 
 def test_memory_rat_loops():
     maze = SimpleMaze(random_maze(0.5, OneDimensionalLocalizer(25, 5)), False)
     rat = MemoryRat()
-    MAX_ITER = 100
+    MAX_ITER = 1000
     iter = maze.solve(rat, MAX_ITER)
-    render_graph(maze.maze(), "temp/memory_maze_loops")
-    if len(rat.final_picture()) < 26:
-        render_graph(rat.final_picture(), "temp/memory_picture_loops")
+    #render_graph(maze.maze(), "temp/memory_maze_loops")
+    #if len(rat.final_picture()) < 26:
+    #    render_graph(rat.final_picture(), "temp/memory_picture_loops")
     #assert(are_equal_mazes(rat.final_picture(), maze.maze()))
+
+    # are_equal_mazes just blows up out of recursion space if the final_picture
+    # is too big.
+    final = rat.final_picture()
+    if len(final) < 100:
+        assert(are_equal_mazes(final, maze.maze()))
     print("test_memory_rat_loops solved in %i iterations" % iter)
     assert(iter > 0 and iter < MAX_ITER)
 
-def test_merge():
-    pass
-    #alice = MemoryRat([[1], [0, 2], [1, -1, 3], [2]], 2, 2, 3)
-    #bert = MemoryRat([[1], [0, 2], [1, 3, -1], [2, 4, -1], [3]], 2, 1, 3)
-    #old_alice = deepcopy(alice.picture)
-    #old_bert = deepcopy(bert.picture)
-
-    #assert(are_equal_mazes(alice, bert))
-    #alice.merge(bert, 3, 1)
-    #assert(are_equal_mazes(alice, bert))
-    #assert(are_equal_mazes(alice, old_alice))
-    #assert(are_equal_mazes(bert, old_bert))
-
 if __name__ == "__main__":
-    test_memory_rat_no_loops()
-    test_memory_rat_loops()
+    for _ in range(100):
+        test_memory_rat_no_loops()
+        test_memory_rat_loops()

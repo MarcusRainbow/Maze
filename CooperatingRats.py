@@ -54,4 +54,5 @@ def test_cooperative_rats_noloops():
     assert(iter > 0 and iter < MAX_ITER)
 
 if __name__ == "__main__":
-    test_cooperative_rats_noloops()
+    for _ in range(100):
+        test_cooperative_rats_noloops()
