@@ -8,6 +8,12 @@ class MazeInfo(ABC):
     def set_pos(self, pos: int, back: int, directions: int, rat: 'Rat'):
         pass
 
+    # While the rats are in a tunnel, they do not have a valid position,
+    # or at least no other rats can see where they are.
+    @abstractmethod
+    def invalidate_pos(self, rat: 'Rat'):
+        pass
+
 class Rat(ABC):
 
     # The maze asks which way we want to turn.

@@ -11,9 +11,12 @@ class TremauxMazeInfo(MazeInfo):
         self.back = -1
         self.started = False
 
-    def set_pos(self, pos: int, back: int, _directions: int, _rat: int):
+    def set_pos(self, pos: int, back: int, _directions: int, _rat: Rat):
         self.position = pos
         self.back = back
+    
+    def invalidate_pos(self, _rat: Rat):
+        pass
 
     # Picks which way to turn. Takes the number of
     # possible directions (including backwards) and

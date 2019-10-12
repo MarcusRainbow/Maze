@@ -110,9 +110,9 @@ class MemoryRat(Rat):
         if self.picture == other.picture:
             return
 
-        #print("merge(%i, %i): self=%i other=%i" % (directions, tunnel, self.next_node, other.next_node))
-        #print(self.picture)
-        #print(other.picture)
+        print("merge(%i, %i): self=%i other=%i" % (directions, tunnel, self.next_node, other.next_node))
+        print(self.picture)
+        print(other.picture)
 
         # the mazes should be the same, as far as we can see (parts may be unknown
         # in either or both)
@@ -125,10 +125,16 @@ class MemoryRat(Rat):
         self.ensure_next_exists(directions)
         other.ensure_next_exists(directions)
 
+        #print("after ensure_next: self=%i other=%i" % (self.next_node, other.next_node))
+        #print(self.picture)
+        #print(other.picture)
+
         # Walk both pictures from the start, trying to find mappings
         # between nodes in the two pictures. Then do the same from the end.
         node_mapping: Dict[int, int] = {}
+        #print("add node mappings from the start (my next = %i, other = %i)" % (self.next_node, other.next_node))
         self.add_node_mapping(other, 0, 0, 0, node_mapping)
+        #print("add node mappings from the end (my next = %i, other = %i)" % (self.next_node, other.next_node))
         self.add_node_mapping(other, self.next_node, other.next_node, tunnel, node_mapping)
 
         #print("node mapping: %s" % node_mapping)
@@ -153,6 +159,10 @@ class MemoryRat(Rat):
         assert(are_equal_mazes(my_old_picture, self.picture))
         assert(are_equal_mazes(other_old_picture, other.picture))
 
+        print("merge resulted in: self=%i other=%i" % (self.next_node, other.next_node))
+        print(self.picture)
+        print(other.picture)
+
     # Walk our picture and that of the other rat from the given node, finding
     # mappings between any nodes that are common between the two. Mappings
     # are expressed as other_node->this_node. The rotation parameter expresses
@@ -163,6 +173,9 @@ class MemoryRat(Rat):
         rotation: int,
         mapping: Dict[int, int]):
 
+        #print("add_node_mapping(%i, %i, %i)" % (this_node, other_node, rotation))
+        #print("  current mapping: %s" % mapping)
+
         # if this node is already mapped, we are finished
         if other_node in mapping:
             if mapping[other_node] != this_node:
@@ -172,23 +185,34 @@ class MemoryRat(Rat):
         # add this node
         mapping[other_node] = this_node
 
-        # recurse through any known edges
+        # make sure this rat and other rat are on the same page
         edges = self.picture[this_node]
         other_edges = other.picture[other_node]
         edge_count = len(edges)
-        assert(edge_count == len(other_edges))
+        if edge_count != len(other_edges):
+            raise Exception("Confused: first rat thinks node %i is %s, "
+                "but other thinks matching node %i is %s (mapping=%s)" 
+                % (this_node, edges, other_node, other_edges, mapping))
+
+        #print("  our edges: %s" % edges)
+        #print("  other edges: %s" % other_edges)
+
+        # recurse through any known edges
         for (i, subnode) in enumerate(edges):
             other_subnode = other_edges[(i + rotation) % edge_count]
             if subnode != UNKNOWN and other_subnode != UNKNOWN:
+                #print("  %i maps to %i" % (subnode, other_subnode))
                 this_back = self.picture[subnode].index(this_node)
                 other_back = other.picture[other_subnode].index(other_node)
                 subrotation = other_back - this_back
                 self.add_node_mapping(other, subnode, other_subnode, subrotation, mapping)
 
     def ensure_next_exists(self, directions: int):
-        # nothing to do if the next node already exists
+        # nothing to do if the next node already exists, except to verify the number
+        # of exits
         if self.next_node != UNKNOWN:
-            return
+            if len(self.picture[self.next_node]) != directions:
+                raise Exception("merge in wrong place: directions=%i node=%s" %(directions, self.picture[self.next_node]))
 
         # create a new node and point self.next_node at it
         this_node = len(self.picture)
@@ -210,7 +234,7 @@ class MemoryRat(Rat):
         assert(this_node != UNKNOWN and other_node != UNKNOWN)
 
         if this_node != mapping[other_node]:
-            raise Exception("TODO: we do not currently handle loops")
+            print("TODO: we do not currently handle loops")
 
         # If we have already handled this node, do not do so again
         # (Avoid walking forever round loops)
@@ -244,12 +268,15 @@ class MemoryRat(Rat):
                         edges[i] = new_node
                         mapping[other_subnode] = new_node
 
-                # we now know the node, even if we did not before, so recurse
+                # We now know the node, even if we did not before, so recurse. (We cannot do
+                # this if we do not know the relative rotation, so we do need back pointers.)
                 this_subnode = edges[i]
-                this_back = self.picture[this_subnode].index(this_node)
-                other_back = other.picture[other_subnode].index(other_node)
-                subrotation = other_back - this_back
-                self.add_missing(other, this_subnode, other_subnode, subrotation, mapping, traversed)
+                if (this_node in self.picture[this_subnode] 
+                        and other_node in other.picture[other_subnode]):
+                    this_back = self.picture[this_subnode].index(this_node)
+                    other_back = other.picture[other_subnode].index(other_node)
+                    subrotation = other_back - this_back
+                    self.add_missing(other, this_subnode, other_subnode, subrotation, mapping, traversed)
 
     # This rat (Alice) has visited a node (this_subnode) before, but not from
     # this same direction as other rat (Bert), who is visiting from Bert's
