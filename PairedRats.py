@@ -12,25 +12,32 @@ class PairedRatMazeInfo(MazeInfo):
         self.positions = [-1, -2]
         self.prev = [-3, -4]
         self.hit_rat = [False] * 2
+        self.moving = [True] * 2
         self.rat = None
 
     def set_pos(self, pos: int, _back: int, _directions: int, rat: Rat):
-        id = rat.get_id()
-        if id > 1:
+        i = rat.get_id()
+        if i > 1:
             raise Exception("Only two rats allowed with PairedRat")
-        self.prev[id] = self.positions[id]
-        self.positions[id] = pos
+        self.prev[i] = self.positions[i]
+        self.positions[i] = pos
+        self.moving[i] = False
         
         # Have we landed on the other rat and is it going the same way as us?
         # Also avoid turning if either we or the other rat is already in process
         # of turning. We want to ensure that both rats remain in step.
         if (self.positions[0] == self.positions[1] 
                 and self.prev[0] == self.prev[1]
+                and not self.moving[0] and not self.moving[1]
                 and not self.hit_rat[0] and not self.hit_rat[1]):
             self.hit_rat = [True] * 2
 
         #A = ord('A')
         #print("id=%i pos=%s prev=%s hit_rat=%s" % (id, str(chr(pos + A)), str(chr(self.prev[id] + A)), self.hit_rat))
+
+    def invalidate_pos(self, rat: Rat):
+        i = rat.get_id()
+        self.moving[i] = True
 
     # Tests whether the current rat has hit another rat. Always resets
     # the state back to unhit, so hits only count once per rat.    
@@ -143,8 +150,8 @@ def test_paired_rats():
 if __name__ == "__main__":
     test_paired_rats_1()
     test_paired_rats_2()
-    test_paired_rats_3()
-    test_paired_rats_4()
-    test_paired_rats_5()
+    #test_paired_rats_3()
+    #test_paired_rats_4()
+    #test_paired_rats_5()
     #for _ in range(100):
     #    test_paired_rats()

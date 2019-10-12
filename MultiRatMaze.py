@@ -89,6 +89,11 @@ class MultiRatMaze:
                 pos[i] = edges[direction]
                 #print("pos=%i last_pos=%i" % (pos, last_pos))
 
+                # invalidate the position info of rats that are in process of
+                # moving
+                if info:
+                    info.invalidate_pos(rat)
+
         # hit the end, or failed with an iteration count that is too high
         # (technically we should worry about the case where we hit max
         # iterations with a valid exit, but this is unlikely and does not

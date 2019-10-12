@@ -31,19 +31,11 @@ class RatChatMazeInfo(MazeInfo):
 
     def debug(self):
         for (rat, pos) in self.pos_by_rat.items():
-            print("   %s at %s" % (rat.name(), str(chr(ord('A') + pos))))
+            print("   %s at %s, " % (rat.name(), str(chr(ord('A') + pos))), end='')
+        print()
 
     def set_pos(self, pos: int, back: int, directions: int, rat: Rat):
-        # remove ourselves from the previous position's list
-        if rat in self.pos_by_rat:
-            prev = self.pos_by_rat[rat]
-            assert(prev != pos)
-            updated = [(r, b) for (r, b) in self.rats_by_position[prev] if r is not rat]
-            if updated:
-                self.rats_by_position[prev] = updated
-            else:
-                # if the list at this position is empty, remove it altogether
-                del self.rats_by_position[prev]
+        print("rat %s moving to %s" % (rat.name(), str(chr(ord('A') + pos))))
         
         # add our new position, so we can remove ourselves when we next move
         self.pos_by_rat[rat] = pos
@@ -54,6 +46,7 @@ class RatChatMazeInfo(MazeInfo):
         else:
             # there's at least one rat already here. Talk to them
             rats = self.rats_by_position[pos]
+            self.debug()
             #print("%i rats in position %s" % (len(rats) + 1, str(chr(ord('A') + pos))))
             for (other_rat, other_back) in rats:
                 assert other_rat is not rat
@@ -61,6 +54,20 @@ class RatChatMazeInfo(MazeInfo):
             
             # add ourselves to the list of rats
             rats.append((rat, back))
+
+    def invalidate_pos(self, rat: Rat):
+
+        print("rat %s moving out" % rat.name())
+
+        # remove ourselves from the previous position's list
+        if rat in self.pos_by_rat:
+            prev = self.pos_by_rat[rat]
+            updated = [(r, b) for (r, b) in self.rats_by_position[prev] if r is not rat]
+            if updated:
+                self.rats_by_position[prev] = updated
+            else:
+                # if the list at this position is empty, remove it altogether
+                del self.rats_by_position[prev]
 
 class TestChatRat(Rat, RatChat):
 
