@@ -1,5 +1,14 @@
 from abc import ABC, abstractmethod
 
+# First the maze says where each rat is, by calling set_pos for each.
+# Then each rat decides where to move to, by responding to turn (see Rat
+# interface below). As each rat moves, the maze invokes invalidate_pos
+# as the rats disappear into a tunnel. To sum up:
+#
+# * set_pos, as each rat appears in the next chamber
+# * turn, as each rat decides where to go
+# * invalidate_pos, as each rat disappears into a tunnel
+# 
 class MazeInfo(ABC):
     # Allows the maze to set the position of the current node. Also
     # pass in the direction we entered the current node (back), the
@@ -8,8 +17,7 @@ class MazeInfo(ABC):
     def set_pos(self, pos: int, back: int, directions: int, rat: 'Rat'):
         pass
 
-    # While the rats are in a tunnel, they do not have a valid position,
-    # or at least no other rats can see where they are.
+    # Allows the maze to invalidate the position of the given rat.
     @abstractmethod
     def invalidate_pos(self, rat: 'Rat'):
         pass
