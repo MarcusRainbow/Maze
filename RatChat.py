@@ -31,12 +31,11 @@ class RatChatMazeInfo(MazeInfo):
 
     def debug(self):
         for (rat, pos) in self.pos_by_rat.items():
-            print("   %s at %s, " % (rat.name(), str(chr(ord('A') + pos))), end='')
-        print()
+            print("   %s at %s" % (rat.name(), str(chr(ord('A') + pos))))
 
     def set_pos(self, pos: int, back: int, directions: int, rat: Rat):
-        print("rat %s moving to %s" % (rat.name(), str(chr(ord('A') + pos))))
-        
+        # print("%s moved to %s" % (rat.name(), str(chr(ord('A') + pos))))
+
         # add our new position, so we can remove ourselves when we next move
         self.pos_by_rat[rat] = pos
 
@@ -46,22 +45,20 @@ class RatChatMazeInfo(MazeInfo):
         else:
             # there's at least one rat already here. Talk to them
             rats = self.rats_by_position[pos]
-            self.debug()
             #print("%i rats in position %s" % (len(rats) + 1, str(chr(ord('A') + pos))))
             for (other_rat, other_back) in rats:
                 assert other_rat is not rat
-                other_rat.chat(rat, directions, (back - other_back) % directions)
+                # print("%s talking to %s at %s" % (rat.name(), other_rat.name(), str(chr(ord('A') + pos))))
+                other_rat.chat(rat, directions, (other_back - back) % directions)
             
             # add ourselves to the list of rats
             rats.append((rat, back))
 
     def invalidate_pos(self, rat: Rat):
-
-        print("rat %s moving out" % rat.name())
-
         # remove ourselves from the previous position's list
         if rat in self.pos_by_rat:
             prev = self.pos_by_rat[rat]
+            #print("%s moved from %s" % (rat.name(), str(chr(ord('A') + prev))))
             updated = [(r, b) for (r, b) in self.rats_by_position[prev] if r is not rat]
             if updated:
                 self.rats_by_position[prev] = updated
