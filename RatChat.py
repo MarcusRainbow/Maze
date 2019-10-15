@@ -45,7 +45,6 @@ class RatChatMazeInfo(MazeInfo):
         else:
             # there's at least one rat already here. Talk to them
             rats = self.rats_by_position[pos]
-            #print("%i rats in position %s" % (len(rats) + 1, str(chr(ord('A') + pos))))
             for (other_rat, other_back) in rats:
                 assert other_rat is not rat
                 # print("%s talking to %s at %s" % (rat.name(), other_rat.name(), str(chr(ord('A') + pos))))

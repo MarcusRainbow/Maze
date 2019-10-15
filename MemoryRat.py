@@ -128,7 +128,8 @@ class MemoryRat(Rat):
             # print("  already agree")
             return
 
-        # print("  merge(%i, %i): self=%i other=%i" % (directions, tunnel, self.next_node, other.next_node))
+        # print("  merge(%i, %i): self=%i other=%i prev=%i other_prev=%i" 
+        #     % (directions, tunnel, self.next_node, other.next_node, self.prev_node, other.prev_node))
         # print("  self: %s" % self.picture)
         # print("  other: %s" % other.picture)
 
@@ -146,7 +147,9 @@ class MemoryRat(Rat):
         other.ensure_next_exists(directions)
 
         # update this rat's picture from the other, then vice-versa
+        # print("   merge self from other: picture=%s" % self.picture)
         self.merge_from(other, tunnel)
+        # print("   merge other from self: picture=%s" % other.picture)
         other.merge_from(self, -tunnel)
         
         # both resulting mazes should still be equal
@@ -250,6 +253,9 @@ class MemoryRat(Rat):
     def calculate_rotation(self, other: Rat, tunnel: int, mapping: Dict[int, Tuple[int, int]]):
         this_subnode_edges = self.picture[self.next_node]
         other_subnode_edges = other.picture[other.next_node]
+        if self.prev_node not in this_subnode_edges or other.prev_node not in other_subnode_edges:
+            raise Exception("Cannot calculate rotation: %i not in %s or %i not in %s"
+                % (self.prev_node, this_subnode_edges, other.prev_node, other_subnode_edges))
         this_back = this_subnode_edges.index(self.prev_node)
         other_back = other_subnode_edges.index(other.prev_node)
         return tunnel + other_back - this_back
@@ -384,17 +390,20 @@ class MemoryRat(Rat):
         # look for a shared tunnel, and use it to set the rotation
         for i, other_edge in enumerate(other_edges):
             if other_edge != UNKNOWN and other_edge in mapping:
-                mapped_edge = mapping[other_edge]
+                mapped_edge, _ = mapping[other_edge]
                 if mapped_edge in this_edges:
-                    j = this_edges.index[mapped_edge]
+                    j = this_edges.index(mapped_edge)
                     this_offset = (j - i + other_offset) % len(this_edges)
                     this_edges[this_offset] = this_node
+                    return
 
         # If we get to here, it was not possible to set the back link.
         # However, in practice the most common reason is that this is
         # the end node, which add_node_mapping has already mapped self
         # to other, and we are walking from the start. We are just
         # about to walk from the end, which will fill in the back link anyway.
+        print("fill_back_link failed: this=%s node=%i other=%s other_node=%i mapping=%s"
+            % (this_edges, this_node, other_edges, other_edge, mapping))
 
     # The picture contains some nodes that are represented separately but
     # are in fact aliases of each other. Remove the aliased nodes, replacing
@@ -493,6 +502,9 @@ class MemoryRat(Rat):
                     # the case where there is some more complex structure, such as a
                     # cycle of three, leave sorting out the mess for a subsequent pass.
                     pass
+                elif reverse_lookup_alias(alias_edge, further_aliases):
+                    # The opposite order of adding items from the test above
+                    pass 
                 else:
                     # Assume this is an alias we don't yet know about.
                     # We can calculate the rotation because the edge we came
@@ -504,10 +516,17 @@ class MemoryRat(Rat):
                         alias_back = alias_node_edges.index(base)
                         base_back = base_node_edges.index(base)
                         further_aliases[alias_edge] = (base_edge, base_back - alias_back)
+                        # print("adding alias: %i=%i (%s)" % (alias_edge, base_edge, further_aliases))
                     else:
                         print("alias=%i alias_node_edges=%s base=%i base_node_edges=%s"
                             % (alias, alias_node_edges, base, base_node_edges))
-                        print("no back pointers, so cannot set direction of alias")
+                        # raise Exception("no back pointers, so cannot set direction of alias")
+
+def reverse_lookup_alias(edge: int, aliases: Dict[int, Tuple[int, int]]) -> bool:
+    for _, (value, _) in aliases.items():
+        if edge == value:
+            return True
+    return False
 
 def test_memory_rat_no_loops():
     maze = SimpleMaze(random_maze(0.0, OneDimensionalLocalizer(25, 5)), False)

@@ -186,6 +186,36 @@ def test_cooperative_rats_10():
     print("test_cooperative_rats_10 solved in %i iterations" % iter)
     assert(iter > 0 and iter < MAX_ITER)
 
+def test_cooperative_rats_11():
+    seed(1192)  # 7 is not in list
+    maze = MultiRatMaze([[1, 2], [0], [4, 0], [5], [8, 2], [3, 8, 7], 
+        [9], [12, 5], [4, 13, 5, 12], [13, 6], [11], [10, 15, 16], 
+        [7, 8], [8, 15, 9], [16, 18], [13, 11], [14, 11], [21, 18], 
+        [17, 14, 22], [24], [22, 25], [24, 17], [18, 20], [24], 
+        [21, 23, 19]], False)
+    #render_graph(maze.maze(), "temp/test_cooperative_rats_11")
+    rats = [(CooperativeRat(r), 1) for r in ["Alice", "Bert"]]
+    MAX_ITER = 1000
+    iter = maze.solve(rats, MAX_ITER, False, RatChatMazeInfo())
+    print("test_cooperative_rats_11 solved in %i iterations" % iter)
+    assert(iter > 0 and iter < MAX_ITER)
+
+def test_cooperative_rats_12():
+    seed(1341)  # assert(are_equal_mazes(my_old_picture, self.picture, my_old_start, self.start))
+    #seed(1758)  # assert(assert(valid_exit_count > 0))
+    #seed(2032)  # Cannot calculate rotation: 9 not in [2, 4, 7, -1] or 9 not in [3, 9, 5, 7]
+    maze = MultiRatMaze([[1, 2], [0], [4, 0], [5], [8, 2], [3, 8, 7], 
+        [9], [12, 5], [4, 13, 5, 12], [13, 6], [11], [10, 15, 16], 
+        [7, 8], [8, 15, 9], [16, 18], [13, 11], [14, 11], [21, 18], 
+        [17, 14, 22], [24], [22, 25], [24, 17], [18, 20], [24], 
+        [21, 23, 19]], False)
+    # render_graph(maze.maze(), "temp/test_cooperative_rats_12")
+    rats = [(CooperativeRat(r), 1) for r in ["Alice", "Bert"]]
+    MAX_ITER = 1000
+    iter = maze.solve(rats, MAX_ITER, False, RatChatMazeInfo())
+    print("test_cooperative_rats_12 solved in %i iterations" % iter)
+    assert(iter > 0 and iter < MAX_ITER)
+
 if __name__ == "__main__":
     test_cooperative_rats_1()
     test_cooperative_rats_2()
@@ -197,8 +227,10 @@ if __name__ == "__main__":
     test_cooperative_rats_8()
     test_cooperative_rats_9()
     test_cooperative_rats_10()
+    test_cooperative_rats_11()
+    # test_cooperative_rats_12()
 
-    for _ in range(1000):
+    for _ in range(100):
         test_cooperative_rats_noloops()
-    for _ in range(1000):
+    for _ in range(70):
         test_cooperative_rats_loops()
