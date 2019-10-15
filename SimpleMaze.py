@@ -236,11 +236,12 @@ def render_graph(maze: List[List[int]], file_name):
 # Test whether two mazes are the same. The nodes may not be in the same
 # order, and the edges may be rotated, but the topology should be the same.
 # Handle negative nodes as a wildcard, matching anything.
-def are_equal_mazes(left: List[List[int]], right: List[List[int]]) -> bool:
+def are_equal_mazes(left: List[List[int]], right: List[List[int]],
+    left_start: int = 0, right_start: int = 0) -> bool:
     #print("are_equal_mazes():")
     #print(left)
     #print(right)
-    return are_nodes_equal(left, right, 0, 0, -1, -1, set())
+    return are_nodes_equal(left, right, left_start, right_start, -1, -1, set())
 
 def are_nodes_equal(
     left: List[List[int]], 
