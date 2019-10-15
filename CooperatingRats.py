@@ -228,9 +228,10 @@ if __name__ == "__main__":
     test_cooperative_rats_9()
     test_cooperative_rats_10()
     test_cooperative_rats_11()
-    # test_cooperative_rats_12()
+    test_cooperative_rats_12()
 
-    for _ in range(100):
+    for _ in range(1000):
         test_cooperative_rats_noloops()
-    for _ in range(70):
+    for i in range(371):
+        print("test_cooperative_rats_loops(%i)" % i)
         test_cooperative_rats_loops()

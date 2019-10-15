@@ -428,8 +428,11 @@ class MemoryRat(Rat):
             # merge all alias nodes into their base nodes, then kill them by
             # setting their edges to empty.
             further_aliases: Dict[int, Tuple[int, int]] = {}
+            checked: Set[int] = set()
             for alias, (base, rotation) in aliases.items():
-                self.merge_nodes(alias, base, rotation, aliases, further_aliases)
+                undo = []
+                if not self.merge_nodes(alias, base, rotation, further_aliases, undo, checked):
+                    raise Exception("Cannot merge nodes: %i to %i in %s" % (alias, base, self.picture))
                 self.picture[alias] = []
 
             # print("    merged: %s" % self.picture)
@@ -469,15 +472,17 @@ class MemoryRat(Rat):
         alias: int, 
         base: int, 
         rotation: int,
-        aliases: Dict[int, Tuple[int, int]],
-        further_aliases: Dict[int, Tuple[int, int]]):
+        # aliases: Dict[int, Tuple[int, int]],
+        further_aliases: Dict[int, Tuple[int, int]],
+        undo: List[Tuple[int, int, int]],
+        checked: Set[int]) -> bool:
 
         alias_edges = self.picture[alias]
         base_edges = self.picture[base]
         edge_count = len(base_edges)
         if len(alias_edges) != edge_count:
-            raise Exception("Alias %i (%s) does not match base %i (%s)"
-                % (alias, alias_edges, base, base_edges))
+            # print("Alias %i (%s) does not match base %i (%s)" % (alias, alias_edges, base, base_edges))
+            return False
 
         for i, alias_edge in enumerate(alias_edges):
             if alias_edge != UNKNOWN:
@@ -486,41 +491,94 @@ class MemoryRat(Rat):
                 # print("replace %i with %i (%s from %s) (%i from %i) rotation=%i edge_count=%i"
                 #     % (alias_edge, base_edge, alias_edges, base_edges, i, base_offset, rotation, edge_count))
                 if base_edge == UNKNOWN:
+                    # print("alias %i matched unknown edge" % alias_edge)
                     base_edges[base_offset] = alias_edge
+                    undo.append((base_edges, base_offset, base_edge))
                 elif base_edge == alias_edge:
+                    # print("alias %i matched indentical edge" % alias_edge)
                     pass    # already know about this edge
-                elif alias_edge in aliases:
-                    if aliases[alias_edge] != base_edge:
-                        # We already know about this alias, but it's pointing at the
-                        # wrong thing.
-                        print("alias is pointing at the wrong thing")
+                elif len(self.picture[alias_edge]) != len(self.picture[base_edge]):
+                    # print("Cannot merge edges of different lengths")
+                    return False
                 elif alias_edge in further_aliases:
+                    # print("alias %i already mapped (1). Ignore" % alias_edge)
                     # leave for the next pass
                     pass
                 elif base_edge in further_aliases:
                     # Make sure we do not create two aliases pointing at each other. In
                     # the case where there is some more complex structure, such as a
                     # cycle of three, leave sorting out the mess for a subsequent pass.
+                    # print("alias %i already mapped (2). Ignore" % alias_edge)
                     pass
                 elif reverse_lookup_alias(alias_edge, further_aliases):
                     # The opposite order of adding items from the test above
+                    # print("alias %i already mapped (3). Ignore" % alias_edge)
                     pass 
-                else:
+                elif base in self.picture[alias_edge] and base in self.picture[base_edge]:
                     # Assume this is an alias we don't yet know about.
                     # We can calculate the rotation because the edge we came
                     # from is common to both alias and base. (Note we have
                     # already replaced alias with base in both edges.)
-                    alias_node_edges = self.picture[alias_edge]
-                    base_node_edges = self.picture[base_edge]
-                    if base in alias_node_edges and base in base_node_edges:
-                        alias_back = alias_node_edges.index(base)
-                        base_back = base_node_edges.index(base)
-                        further_aliases[alias_edge] = (base_edge, base_back - alias_back)
-                        # print("adding alias: %i=%i (%s)" % (alias_edge, base_edge, further_aliases))
-                    else:
-                        print("alias=%i alias_node_edges=%s base=%i base_node_edges=%s"
-                            % (alias, alias_node_edges, base, base_node_edges))
-                        # raise Exception("no back pointers, so cannot set direction of alias")
+                    alias_back = self.picture[alias_edge].index(base)
+                    base_back = self.picture[base_edge].index(base)
+                    further_aliases[alias_edge] = (base_edge, base_back - alias_back)
+                    # print("assume mapping from %i to %i" % (alias_edge, base_edge))
+                elif alias in self.picture[alias_edge] and base in self.picture[base_edge]:
+                    # As above, but the case where the alias has not been mapped.
+                    alias_back = self.picture[alias_edge].index(alias)
+                    base_back = self.picture[base_edge].index(base)
+                    further_aliases[alias_edge] = (base_edge, base_back - alias_back)
+                    # print("assume mapping from %i to %i" % (alias_edge, base_edge))
+                else:
+                    # If we get to here it means either the node we are looking at cannot
+                    # be merged with the base, or that it can be but we are not sure how.
+                    # try all the possible unifications, and go for whichever works.
+                    if not self.merge_edges(alias_edge, base_edge, further_aliases, undo, checked):
+                        # print("failed to merge %i with %i" % (alias_edge, base_edge))
+                        return False
+    
+        return True
+
+    def merge_edges(
+        self, 
+        alias: int,
+        base: int,
+        further_aliases: Dict[int, Tuple[int, int]],
+        undo: List[Tuple[int, int, int]],
+        checked: Set[int]) -> bool:
+
+        # print("merge_edges: %i -> %i (%s -> %s)" 
+        #     % (alias, base, self.picture[alias], self.picture[base]))
+
+        # avoid checking a node we have already investigated
+        if alias in checked:
+            # print("already checked %i" % alias)
+            return True
+        checked.add(alias)
+
+        # Try every possible rotation
+        edge_count = len(self.picture[alias])
+        for rotation in range(edge_count):
+            # print("rotation: %i" % rotation)
+            nested_aliases = further_aliases.copy()
+            nested_undo = undo[:]
+            if self.merge_nodes(alias, base, rotation, nested_aliases, nested_undo, checked):
+                further_aliases[alias] = (base, rotation)
+                undo = nested_undo
+                # do not recursively collect further aliases
+                # print("successfully matched %i" % alias)
+                return True     # Currently we accept the first valid match.
+            
+            # undo anything that was set by the previous merge
+            self.undo_merge(nested_undo)
+        
+        checked.remove(alias)
+        # print("failed to match %i" % alias)
+        return False    # no rotation works
+
+    def undo_merge(self, undo: List):
+        for (node, offset, restore) in undo:
+            self.picture[node][offset] = restore
 
 def reverse_lookup_alias(edge: int, aliases: Dict[int, Tuple[int, int]]) -> bool:
     for _, (value, _) in aliases.items():
