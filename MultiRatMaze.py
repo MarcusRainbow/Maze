@@ -6,13 +6,17 @@ from SimpleMaze import random_maze, render_graph, validate_edges
 from Localizer import Localizer, NonLocalLocalizer, OneDimensionalLocalizer, TwoDimensionalOneStepLocalizer
 from graphviz import Graph
 
-# A multi-rat maze supports more than one rat, moving at different
-# speeds. The speed of each rat is defined by an integer, stating how
-# often the rat moves.
 class MultiRatMaze:
-    # Initialise with a set of edges. If fill_back_steps is true, we
-    # generate backward edges to make it an undirected graph.
+    """
+    A multi-rat maze supports more than one rat, moving at different
+    speeds. The speed of each rat is defined by an integer, stating how
+    often the rat moves.
+    """
     def __init__(self, edges: List[List[int]], fill_back_steps: bool):
+        """
+        Initialise with a set of edges. If fill_back_steps is true, we
+        generate backward edges to make it an undirected graph.
+        """
         validate_edges(edges, fill_back_steps)
         self.all_edges = edges
 
@@ -22,17 +26,19 @@ class MultiRatMaze:
     def maze(self) -> List[List[int]]:
         return self.all_edges
 
-    # Tries to solve the maze. Returns the number of iterations used.
-    # If it exceeds max_iterations, returns max_iterations + 1. The rats
-    # parameter is a list of rats and their associated speeds (one being fastest,
-    # two meaning wait every other turn etc.) Either wait for all rats,
-    # or exit as soon as the fastest rat has quit.
     def solve(
         self, 
         rats: List[Tuple[Rat, int]], 
         max_iterations: int,
         wait_for_all: bool = False,
         info: Optional[MazeInfo] = None) -> bool:
+        """
+        Tries to solve the maze. Returns the number of iterations used.
+        If it exceeds max_iterations, returns max_iterations + 1. The rats
+        parameter is a list of rats and their associated speeds (one being fastest,
+        two meaning wait every other turn etc.) Either wait for all rats,
+        or exit as soon as the fastest rat has quit.
+        """
 
         rat_count = len(rats)
         if rat_count == 0:

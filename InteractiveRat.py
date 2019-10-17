@@ -2,9 +2,16 @@ from RatInterface import Rat, MazeInfo
 from SimpleMaze import SimpleMaze
 
 class InteractiveRat(Rat):
+    """
+    Implementation of Rat that simply talks to the user --
+    the 'Human Rat'.
+    """
 
-    # The maze asks which way we want to turn. We ask the user.
     def turn(self, directions: int, _: MazeInfo) -> int:
+        """
+        The maze asks which way we want to turn. We ask the user.
+        """
+
         msg = ""
         if directions == 0:
             msg = "You are stuck. Type 0 to quit: "

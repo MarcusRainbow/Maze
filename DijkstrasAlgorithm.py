@@ -2,11 +2,13 @@ from Localizer import OneDimensionalLocalizer
 from SimpleMaze import random_maze, render_graph
 from typing import List, Dict
 
-# Given a maze, and the start and end nodes, return a dictionary of the distances
-# from the start to each of the positions in the maze. The end node should always
-# be present in the dictionary, but some other nodes may not be, if they did not
-# need visiting by the algorithm.
 def dijkstra(maze: List[List[int]], start: int, end: int) -> Dict[int, int]:
+    """
+    Given a maze, and the start and end nodes, return a dictionary of the distances
+    from the start to each of the positions in the maze. The end node should always
+    be present in the dictionary, but some other nodes may not be, if they did not
+    need visiting by the algorithm.
+    """
     
     # 1. Create a set of all unvisited nodes (if the end is not in the set, add that too)
     unvisited = { i for i in range(len(maze)) }

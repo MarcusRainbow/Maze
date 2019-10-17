@@ -5,26 +5,33 @@ from random import randrange
 from SimpleMaze import random_maze, render_graph
 from Localizer import OneDimensionalLocalizer
 
-# An interface that allows rats to communicate with each other. For
-# example, they may simply pull all of the maze information from the
-# other rat.
 class RatChat(ABC):
-    # Allows a rat to chat to another rat. Both rats may be modified.
-    # The intention is that the chat is symmetrical between the rats.
-    # The only external information available is the number of exits
-    # from the current location and the relative direction of the two
-    # rats, as the first rat can see which tunnel the second rat emerges
-    # from, and it can communicate this to the second rat. The tunnel
-    # is specified relative to the tunnel that this rat came from
-    # originally.
+    """
+    An interface that allows rats to communicate with each other. For
+    example, they may simply pull all of the maze information from the
+    other rat.
+    """
+
     @abstractmethod
     def chat(self, other: Rat, directions: int, tunnel: int):
+        """
+        Allows a rat to chat to another rat. Both rats may be modified.
+
+        The intention is that the chat is symmetrical between the rats.
+        The only external information available is the number of exits
+        from the current location and the relative direction of the two
+        rats, as the first rat can see which tunnel the second rat emerges
+        from, and it can communicate this to the second rat. The tunnel
+        is specified relative to the tunnel that this rat came from
+        originally.
+        """
         pass
 
-# Rats can only chat if they are in the same location as each other.
-# We get both chats to listen to each other, otherwise the rats may have
-# moved apart before they each have the chance to listen.
 class RatChatMazeInfo(MazeInfo):
+    """
+    Implementation of MazeInfo that allows rats at the same location
+    to chat to each other.
+    """
     def __init__(self):
         self.pos_by_rat = {}         # position of each rat
         self.rats_by_position = {}   # (rat, back) in each position
@@ -71,16 +78,20 @@ class TestChatRat(Rat, RatChat):
         self.id = id
         self.path = []  # list of (directions, turn)
 
-    # The maze asks which way we want to turn. This test rat
-    # simply turns in a random direction, but also remembers
-    # which nodes it has visited and which way it turned
     def turn(self, directions: int, _info: MazeInfo) -> int:
+        """
+        The maze asks which way we want to turn. This test rat
+        simply turns in a random direction, but also remembers
+        which nodes it has visited and which way it turned
+        """
         go = randrange(0, directions)
         self.path.append((directions, go))
         return go
 
-    # Chat by printing out the path each rat has taken
     def chat(self, other: Rat, directions: int, tunnel: int):
+        """
+        Chat by printing out the path each rat has taken
+        """
         print("this rat (%i) ran into rat (%i) from %i of %i:"
             % (self.id, other.id, tunnel, directions))
         print("   my path:  %s" % self.path)

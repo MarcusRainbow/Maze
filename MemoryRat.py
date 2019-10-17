@@ -8,10 +8,20 @@ from Localizer import OneDimensionalLocalizer
 UNKNOWN = -1     # node that we have not yet visited
 
 class MemoryRat(Rat):
+    """
+    A rat that records internally where it has been.
 
+    This sort of rat is good at navigating around a maze with no loops,
+    which it does by marking dead-ends and avoiding going into them.
+    However, loops simply appear to it as repeated sections of maze,
+    so it has no way of knowing that a tunnel it previously marked as
+    a dead-end is the same as the tunnel it is about to try.
+    """
     def __init__(self):
-        # same data structure as a maze, except that unknown edges
-        # are labelled as -1
+        """
+        Same data structure as a maze, except that unknown edges
+        are labelled as -1
+        """
         self.picture : List[List[int]] = []
         self.dead_ends : Set[int] = set()
         self.start = 0
@@ -29,15 +39,14 @@ class MemoryRat(Rat):
             result[self.prev_node][self.prev_edge] = end
         return result
 
-    # The maze asks which way we want to turn. We remember a picture
-    # of the maze as we go. This may not be accurate, because loops
-    # appear as repeats (we cannot tell the difference). However, it
-    # should help us to find the exit.
     def turn(self, directions: int, _: MazeInfo) -> int:
+        """
+        The maze asks which way we want to turn. We remember a picture
+        of the maze as we go. This may not be accurate, because loops
+        appear as repeats (we cannot tell the difference). However, it
+        should help us to find the exit.
+        """
         assert(directions > 0)
-
-        # print("turn: %i directions prev=(%i %i) next=%i picture=%s" 
-        #    % (directions, self.prev_node, self.prev_edge, self.next_node, self.picture))
         
         # if this is a node we've not visited yet, then add it to the picture
         if self.next_node == UNKNOWN:
@@ -117,15 +126,26 @@ class MemoryRat(Rat):
         #print("  old node: stepping to %i (%i) back=%i" % (self.next_node, turn, back))
         return turn
 
-    # Merges the memories of two rats. Memories are merged with the
-    # assumption that both rats started in the same place, and are now in the same
-    # place. Neither rat has yet been asked to turn, which means that its
-    # current state is that its position is self.next_node (which may be UNKNOWN)
     def merge(self, other: Rat, directions: int, tunnel: int):
+        """
+        Merges the memories of two rats.
+        
+        This is not invoked directly by MemoryRat, but by
+        multi-rat implementations such as CooperativeRat, which
+        have more than one rat in the same maze, which chat and
+        merge information when they meet.
+        
+        Memories are merged with the assumption that both rats
+        started in the same place, and are now in the same
+        place. Neither rat has yet been asked to turn, which means
+        its current position is self.next_node (which may be UNKNOWN).
+
+        Merging is largely symmetric, so both self and other are
+        updated with a merged picture.
+        """
 
         # Nothing to do if we already agree.
         if self.picture == other.picture:
-            # print("  already agree")
             return
 
         # print("  merge(%i, %i): self=%i other=%i prev=%i other_prev=%i" 
@@ -161,6 +181,10 @@ class MemoryRat(Rat):
         # print("  other: %s" % other.picture)
 
     def merge_from(self, other: Rat, tunnel: int):
+        """
+        Single-directional merge. Self is updated but
+        other is not.
+        """
 
         # Walk both pictures from the start, trying to find mappings
         # between nodes in the two pictures. Then do the same from the end.
@@ -191,16 +215,18 @@ class MemoryRat(Rat):
         self.add_missing(other, self.next_node, other.next_node, rotation, mapping, traversed)
         # print("  after add_missing(end): %s" % self.picture)
 
-    # Walk our picture and that of the other rat from the given node, finding
-    # mappings between any nodes that are common between the two. Mappings
-    # are expressed as other_node->this_node. The rotation parameter expresses
-    # the offset of the other_node's edges relative to this_node's edges.
     def add_node_mapping(
         self, other: Rat, 
         this_node: int, other_node: int,
         rotation: int,
         mapping: Dict[int, Tuple[int, int]],
         aliases: Dict[int, Tuple[int, int]]):
+        """
+        Walk our picture and that of the other rat from the given node, finding
+        mappings between any nodes that are common between the two. Mappings
+        are expressed as other_node->this_node. The rotation parameter expresses
+        the offset of the other_node's edges relative to this_node's edges.
+        """
 
         # if this node is already mapped to this, we are finished
         if other_node in mapping:
@@ -247,10 +273,12 @@ class MemoryRat(Rat):
                     subrotation = other_back - this_back
                     self.add_node_mapping(other, subnode, other_subnode, subrotation, mapping, aliases)
 
-    # Calculate the rotation between our worldview and the other rat's. This depends on
-    # the nodes we each came from last, and the tunnel the other rat appeared to come
-    # from.
     def calculate_rotation(self, other: Rat, tunnel: int, mapping: Dict[int, Tuple[int, int]]):
+        """
+        Calculate the rotation between our worldview and the other rat's. This depends on
+        the nodes we each came from last, and the tunnel the other rat appeared to come
+        from.
+        """
         this_subnode_edges = self.picture[self.next_node]
         other_subnode_edges = other.picture[other.next_node]
         if self.prev_node not in this_subnode_edges or other.prev_node not in other_subnode_edges:
@@ -261,6 +289,13 @@ class MemoryRat(Rat):
         return tunnel + other_back - this_back
 
     def ensure_next_exists(self, directions: int):
+        """
+        The current node may be UNKNOWN, if the last move
+        was down an unexplored passage. Given the number of
+        passages in the next chamber, we can construct a
+        new node. This avoids us having to special-case a
+        move to UNKNOWN.
+        """
         # nothing to do if the next node already exists
         if self.next_node != UNKNOWN:
             return
@@ -273,14 +308,16 @@ class MemoryRat(Rat):
         if self.prev_node >= 0:
             self.picture[self.prev_node][self.prev_edge] = this_node
 
-    # Modifies self, by adding any nodes or edges that are known to the
-    # other rat but not to us.
     def add_missing(
         self, other: 'MemoryRat', 
         this_node: int, other_node: int,
         rotation: int,
         mapping: Dict[int, Tuple[int, int]],
         traversed: Set[int]):
+        """
+        Modifies self, by adding any nodes or edges that are known to the
+        other rat but not to us.
+        """
 
         assert(this_node != UNKNOWN and other_node != UNKNOWN)
 
@@ -315,13 +352,11 @@ class MemoryRat(Rat):
                 if subnode == UNKNOWN:
                     # If we know the destination node, set it in our edges
                     if other_subnode in mapping:
-                        # print("add missing edge %i=%i (mapped from %i) in edges %s" % (i, mapping[other_subnode][0], other_subnode, edges))
                         edges[i] = mapping[other_subnode][0]
                         self.fill_back_link(other, this_node, other_node, edges[i], other_subnode, mapping)
                     else:
                         # Otherwise add a new node
                         new_node = len(self.picture)
-                        # print("add missing node %i=%i in edges %s" % (i, new_node, edges))
                         self.picture.append([UNKNOWN] * len(other.picture[other_subnode]))
                         self.picture[new_node][0] = this_node
                         edges[i] = new_node
@@ -337,12 +372,6 @@ class MemoryRat(Rat):
                     subrotation = other_back - this_back
                     self.add_missing(other, this_subnode, other_subnode, subrotation, mapping, traversed)
 
-    # This rat (Alice) has visited a node (this_subnode) before, but not from
-    # this same direction as other rat (Bert), who is visiting from Bert's
-    # equivalent of this_node (other_node). Bert's view of this_subnode is
-    # other_subnode. This function fills in Alice's back-link from
-    # this_subnode to this_node, corresponding to the already-present back-
-    # link from Bert's other_subnode to other_node.    
     def fill_back_link(
         self, 
         other: 'MemoryRat',
@@ -351,6 +380,14 @@ class MemoryRat(Rat):
         this_subnode: int,
         other_subnode: int,
         mapping: Dict[int, Tuple[int]]):
+        """
+        This rat (Alice) has visited a node (this_subnode) before, but not from
+        this same direction as other rat (Bert), who is visiting from Bert's
+        equivalent of this_node (other_node). Bert's view of this_subnode is
+        other_subnode. This function fills in Alice's back-link from
+        this_subnode to this_node, corresponding to the already-present back-
+        link from Bert's other_subnode to other_node. 
+        """   
 
         # This is an entertainingly difficult problem. Let's call self Alice and
         # other, Bert. Alice has already visited this_subnode from a different
@@ -405,12 +442,14 @@ class MemoryRat(Rat):
         print("fill_back_link failed: this=%s node=%i other=%s other_node=%i mapping=%s"
             % (this_edges, this_node, other_edges, other_edge, mapping))
 
-    # The picture contains some nodes that are represented separately but
-    # are in fact aliases of each other. Remove the aliased nodes, replacing
-    # them with their base nodes. We may also need to update the other
-    # member variables in MemoryRat if these refer to aliases rather than 
-    # base nodes.
     def remove_aliases(self, aliases: Dict[int, Tuple[int, int]]):
+        """
+        The picture contains some nodes that are represented separately but
+        are in fact aliases of each other. Remove the aliased nodes, replacing
+        them with their base nodes. We may also need to update the other
+        member variables in MemoryRat if these refer to aliases rather than 
+        base nodes.
+        """
 
         # keep going until there are no aliases left to remove
         while aliases:
@@ -461,21 +500,24 @@ class MemoryRat(Rat):
             # so loop until there are no more aliases
             aliases = further_aliases
 
-        # TODO finish off by removing the empty nodes
+        # TODO finish off by removing empty nodes -- effectively garbage collection.
 
-    # Merge together a base node and some alias to that node. Edges that the alias
-    # knows about and the base node does not, are written into the base. The
-    # merging process may result in some new aliases, which are written into the
-    # further_aliases output parameter.
     def merge_nodes(
         self, 
         alias: int, 
         base: int, 
         rotation: int,
-        # aliases: Dict[int, Tuple[int, int]],
         further_aliases: Dict[int, Tuple[int, int]],
         undo: List[Tuple[int, int, int]],
         checked: Set[int]) -> bool:
+        """
+        Merge together a base node and some alias to that node.
+        
+        Edges that the alias knows about and the base node does not
+        are written into the base. The merging process may result in
+        some new aliases, which are written into the
+        further_aliases output parameter.
+        """
 
         alias_edges = self.picture[alias]
         base_edges = self.picture[base]
@@ -546,6 +588,13 @@ class MemoryRat(Rat):
         further_aliases: Dict[int, Tuple[int, int]],
         undo: List[Tuple[int, int, int]],
         checked: Set[int]) -> bool:
+        """
+        Same as merge_nodes, but where the rotation is not known.
+
+        Tries every possible rotation of the set of edges. Returns
+        true if there is a valid rotation, otherwise undoes what it
+        has done and returns false.
+        """
 
         # print("merge_edges: %i -> %i (%s -> %s)" 
         #     % (alias, base, self.picture[alias], self.picture[base]))

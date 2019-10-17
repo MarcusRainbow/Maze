@@ -1,28 +1,38 @@
 from abc import ABC, abstractmethod
 from random import randrange
 
-# When generating a maze, we need to find the next point to
-# step to. A maze can be completely non-local -- all points are
-# equally accessible, or it can be localized in some number of
-# spatial dimensions. For example, a 2d-one-step localiser has a
-# choice of four possible points to step to in the general case
-# where it is in the middle of the maze.
 class Localizer(ABC):
+    """
+    When generating a maze, we need to find the next point to
+    step to. A maze can be completely non-local -- all points are
+    equally accessible, or it can be localized in some number of
+    spatial dimensions. For example, a 2d-one-step localiser has a
+    choice of four possible points to step to in the general case
+    where it is in the middle of the maze.
+    """
 
-    # How many nodes does this localizer support
     @abstractmethod
     def node_count(self) -> int:
+        """
+        How many nodes does this localizer support
+        """
         pass
 
-    # Find the next node to step to in some random direction from
-    # the given node. Allows a step to the exit only if include_exit
-    # is true and the localizer also allows it.
     @abstractmethod
     def random_step(self, step_from: int, include_exit: bool) -> int:
+        """
+        Find the next node to step to in some random direction from
+        the given node. Allows a step to the exit only if include_exit
+        is true and the localizer also allows it.
+        """
         pass
 
-# Allow steps to anywhere, regardless of where we start
 class NonLocalLocalizer(Localizer):
+    """
+    A localizer that does no localization. It allows steps to 
+    anywhere, regardless of where we start
+    """
+
     def __init__(self, maze_size: int):
         self.maze_size = maze_size
 
@@ -33,9 +43,13 @@ class NonLocalLocalizer(Localizer):
         end = self.maze_size + (1 if include_exit else 0)
         return randrange(0, end)
 
-# Allow steps to a point within some distance of the step_from point,
-# where the maze is considered to be one-dimensional
 class OneDimensionalLocalizer(Localizer):
+    """
+    A localizer that allows steps to a point within some distance 
+    of the step_from point, where the maze is considered to be 
+    one-dimensional.
+    """
+
     def __init__(self, maze_size: int, max_step: int):
         self.maze_size = maze_size
         self.max_step = max_step
@@ -52,11 +66,14 @@ class OneDimensionalLocalizer(Localizer):
         assert right - left >= self.max_step
         return randrange(left, right)
 
-# Allow steps to a point within one step in two dimensions,
-# except near the edges. Only allow a step to the exit from
-# the top right hand point. The maze must be of a size that
-# is exactly divisible by the width
 class TwoDimensionalOneStepLocalizer(Localizer):
+    """
+    A localizer that allows steps to a point within one step in two
+    dimensions, except near the edges. Only allow a step to the exit
+    from the top right hand point. The maze must be of a size that
+    is exactly divisible by the width.
+    """
+
     def __init__(self, maze_size: int, maze_width: int):
         assert maze_size % maze_width == 0
         self.maze_size = maze_size

@@ -8,19 +8,23 @@ from random import randrange, seed
 from SimpleMaze import random_maze, render_graph
 from Localizer import OneDimensionalLocalizer
 
-# Cooperating rats only have visibility of each maze node as they
-# arrive at it. They have no way of leaving markers, or identifying
-# nodes other than simply by the number of exits. However, when they
-# encounter other rats, they can exchange information, which allows
-# them to build up a picture of the maze. They use this picture to
-# try to find the exit, by investigating the nearest unexplored
-# passage.
 class CooperativeRat(Rat, RatChat):
+    """
+    Cooperating rats only have visibility of each maze node as they
+    arrive at it. They have no way of leaving markers, or identifying
+    nodes other than simply by the number of exits. However, when they
+    encounter other rats, they can exchange information, which allows
+    them to build up a picture of the maze. They use this picture to
+    try to find the exit, by investigating the nearest unexplored
+    passage.
+    """
 
-    # Rats are identified by a unique integer. This is only used for
-    # debugging. The rats themselves do not treat different rats
-    # differently.
     def __init__(self, id: str):
+        """
+        Rats are identified by a unique string. This is only used for
+        debugging. The rats themselves do not treat different rats
+        differently.
+        """
         self.id = id
 
         # internally we use a MemoryRat to do the walking and
@@ -31,16 +35,24 @@ class CooperativeRat(Rat, RatChat):
     def name(self):
         return self.id
 
-    # The maze asks which way we want to turn. We just ask
-    # our memory and do what it says.
     def turn(self, directions: int, info: MazeInfo) -> int:
+        """
+        The maze asks which way we want to turn. We just ask
+        our memory and do what it says. However, the chat
+        implementation below means that our memory is more
+        useful than it would be for a single MemoryRat.
+        """
         #info.debug()
         return self.memory.turn(directions, None)
 
-    # Chat by merging our memory with the other rat's
     def chat(self, other: Rat, directions: int, tunnel: int):
-        #print("This rat (%i) saw %i emerging from tunnel %i of %i"
-        #    % (self.id, other.id, tunnel, directions))
+        """
+        Chat by merging our memory with the other rat's.
+
+        This work is currently done by the merge method in
+        MemoryRat. It is non-trivial -- not dissimmilar to
+        the unification algorithm in Prolog.
+        """
         self.memory.merge(other.memory, directions, tunnel)
 
 def test_cooperative_rats_noloops():
@@ -50,7 +62,7 @@ def test_cooperative_rats_noloops():
     rats = [(CooperativeRat(r), 1) for r in ["Alice", "Bert", "Charlie"]]
     MAX_ITER = 1000
     iter = maze.solve(rats, MAX_ITER, False, RatChatMazeInfo())
-    print("test_cooperative_rats_noloops solved in %i iterations" % iter)
+    print(f"test_cooperative_rats_noloops solved in {iter} iterations")
     assert(iter > 0 and iter < MAX_ITER)
 
 def test_cooperative_rats_loops():

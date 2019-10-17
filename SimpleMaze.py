@@ -5,15 +5,20 @@ from SimpleRats import AlwaysLeftRat, RandomRat
 from Localizer import Localizer, NonLocalLocalizer, OneDimensionalLocalizer, TwoDimensionalOneStepLocalizer
 from graphviz import Graph
 
-# A simple maze is a vector of vectors of edges. It supports one
-# rat at a time. It has one start and one end. WLOG, the start is
-# always the first element and the end is one after the last. There is no
-# concept of compass directions in this maze, and there is no
-# policing to prevent crossing paths.
 class SimpleMaze:
-    # Initialise with a set of edges. If fill_back_steps is true, we
-    # generate backward edges to make it an undirected graph.
+    """
+    A simple maze is a vector of vectors of edges. It supports one
+    rat at a time. It has one start and one end. WLOG, the start is
+    always the first element and the end is one after the last. There is no
+    concept of compass directions in this maze, and there is no
+    policing to prevent crossing paths.
+    """
+
     def __init__(self, edges: List[List[int]], fill_back_steps: bool):
+        """
+        Initialise with a set of edges. If fill_back_steps is true, we
+        generate backward edges to make it an undirected graph.
+        """
         validate_edges(edges, fill_back_steps)
         self.all_edges = edges
 
@@ -23,10 +28,12 @@ class SimpleMaze:
     def maze(self) -> List[List[int]]:
         return self.all_edges
 
-    # Tries to solve the maze. Returns the number of iterations used.
-    # If it exceeds max_iterations, returns max_iterations + 1. If it
-    # fails for any other reason, returns 0.
     def solve(self, rat: Rat, max_iterations: int, info: Optional[MazeInfo] = None) -> bool:
+        """
+        Tries to solve the maze. Returns the number of iterations used.
+        If it exceeds max_iterations, returns max_iterations + 1. If it
+        fails for any other reason, returns 0.
+        """
         
         # always start from the beginning
         pos = 0
@@ -71,8 +78,10 @@ class SimpleMaze:
         # matter much).
         return iterations            
 
-# validate and optionally fill back steps
 def validate_edges(edges: List[List[int]], fill_back_steps: bool):
+    """
+    validate and optionally fill back steps
+    """
     end = len(edges)
     if end < 1:
         raise Exception("Must be at least one node")
@@ -102,8 +111,10 @@ def validate_edges(edges: List[List[int]], fill_back_steps: bool):
     if not has_end:
         raise Exception("No edge to the end node")
 
-# Validates that we have an edge (and if necessary inserts one)
 def ensure_edge(maze: List[List[int]], edge_from: int, edge_to: int):
+    """
+    Validates that we have an edge (and if necessary inserts one)
+    """
     node = maze[edge_from]
     count = node.count(edge_to)
     if count == 1:
@@ -114,8 +125,10 @@ def ensure_edge(maze: List[List[int]], edge_from: int, edge_to: int):
     # We need this edge. Append it (no attempt to avoid crossing paths)
     node.append(edge_to)
 
-# Creates a random maze with the specified number of nodes.
 def random_maze(allow_loops: float, local: Localizer) -> List[List[int]]:
+    """
+    Creates a random maze with the specified number of nodes.
+    """
     # Do NOT write maze = [[]] * node_count as this makes all list elements the same memory!
     node_count = local.node_count()
     maze = [[] for y in range(node_count)]
@@ -157,16 +170,18 @@ def random_maze(allow_loops: float, local: Localizer) -> List[List[int]]:
         shuffle(node)
     return maze
 
-# Adds (or at least ensures the existence of) bidirectional edges, and adds
-# the end node to a set of accessible nodes. If allow_loops is zero, we prevent
-# loops (avoid adding an edge that leads to an accessible node). If it is one,
-# we allow them. If between zero and one, we randomly allow them or not.
 def add_bidirectional_edges(
     maze: List[List[int]], 
     accessible: Set[int], 
     edge_from: int, 
     edge_to: int,
     allow_loops: float):
+    """
+    Adds (or at least ensures the existence of) bidirectional edges, and adds
+    the end node to a set of accessible nodes. If allow_loops is zero, we prevent
+    loops (avoid adding an edge that leads to an accessible node). If it is one,
+    we allow them. If between zero and one, we randomly allow them or not.
+    """
 
     if edge_to != edge_from and allow_edge(allow_loops, edge_to, accessible):
         ensure_edge(maze, edge_from, edge_to)
@@ -187,13 +202,15 @@ def allow_edge(allow_loops: float, edge_to: int, accessible: Set[int]) -> bool:
     else:
         return False
 
-# Generate a PDF file showing the maze as an undirected graph. Uses
-# GraphViz, which must be installed and on the PATH. Note that
-# the resulting graph shows only the nodes and their connections. The
-# ordering of edges around each node is determined by GraphViz itself.
-# You therefore cannot rely on this rendering to tell you whether to
-# turn left or right at each node.
 def render_graph(maze: List[List[int]], file_name):
+    """
+    Generate a PDF file showing the maze as an undirected graph. Uses
+    GraphViz, which must be installed and on the PATH. Note that
+    the resulting graph shows only the nodes and their connections. The
+    ordering of edges around each node is determined by GraphViz itself.
+    You therefore cannot rely on this rendering to tell you whether to
+    turn left or right at each node.
+    """
     
     if len(maze) > 26:
         raise Exception("render_graph can only handle up to 26 nodes")
@@ -233,14 +250,13 @@ def render_graph(maze: List[List[int]], file_name):
     #print(dot.source)
     dot.render(file_name, view=True)
 
-# Test whether two mazes are the same. The nodes may not be in the same
-# order, and the edges may be rotated, but the topology should be the same.
-# Handle negative nodes as a wildcard, matching anything.
 def are_equal_mazes(left: List[List[int]], right: List[List[int]],
     left_start: int = 0, right_start: int = 0) -> bool:
-    #print("are_equal_mazes():")
-    #print(left)
-    #print(right)
+    """
+    Test whether two mazes are the same. The nodes may not be in the same
+    order, and the edges may be rotated, but the topology should be the same.
+    Handle negative nodes as a wildcard, matching anything.
+    """
     return are_nodes_equal(left, right, left_start, right_start, -1, -1, set())
 
 def are_nodes_equal(
