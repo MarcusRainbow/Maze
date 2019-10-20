@@ -30,10 +30,16 @@ Cooperative rats are exciting from an AI perpective. It is a simple, well-define
 
 ## Artificial intelligence and artificial life
 
-Exactly how intelligence evolved, or even what it is, is still rather a mystery. Perhaps it centres around evolved modules which handle self-contained tasks such as vision, world-mapping, goal-seeking, and which are shared with many other animals, but which have somehow been repurposed and made more flexible, to handle creative tasks that are special to higher animals such as ourselves. Language, tool use, sophisticated social interaction, running through the extraordinary shared endeavours of community knowledge and skills, such as the individual and social genius that created Bach's music or the Internet, all exist on hardware that evolved for far simpler tasks.
+Early in evolutionary history, plant and animal life diverged. Plants were static, nourishing themselves by photosynthesis, and had no need for intelligence, but animals gradually evolved the ability to move and the intelligence to direct that movement. In all mobile multicelled animals, modules for correlating sensory information with stored maps of the environment are key to their behaviour. Even in animals as simple as bees, the ability to communicate map information with other individuals is a vital part of social interaction. There must therefore be mental modules specialised to the tasks of navigating, adding new information into mental maps, and sharing and integrating maps between individuals.
+
+Higher animals such as humans repurpose these low-level mental modules in metaphorical ways. For example, humans may perceive complex problems as a physical map; computer science discussions use maze and graph metaphors such as Booch and UML diagrams to describe abstract ideas. Thus a possible basis for an intelligent machine is a set of specialised modules for navigating mazes, by painting internal pictures of the maze, communicating those pictures with other instances of the modules, and trying to synthesise an overall picture by merging the pictures.
+
+A machine specialised to computer mazes might then be metaphorically repurposed to solve any sorts of problems that require understanding of a problem space, and communication and merging of partial solutions. Perhaps it is no coincidence that the implementation includes an algorithm that resembles Prolog unification.
 
 ## The future
 
-There are still aspects of cooperating rats that have not been solved here. For example, when two rats meet, there can be ambiguity about how their memories can combine. Handling this ambiguity is not unlike linking variables in Prolog unification.
+There are still aspects of cooperating rats that have not been solved here. For example, when two rats meet, there can be ambiguity about how their memories can combine. Handling this ambiguity is not unlike linking variables in Prolog unification. Currently, the directions taken by rats are random, apart from avoiding known dead ends. Real world rats might communicate possible future paths -- _you try this path, I'll try that_.
 
+The problem becomes orders of magnitude more complex if some individuals do not cooperate. If the goal is to complete the maze before other individuals, it may be advantageous to lie. An evolutionary algorithm could select for individual rats that succeeded, or perhaps more interesting, genes shared by multiple rats.
 
+Rats in a maze could be a world where genuinely emergent artificial intelligence evolves.
