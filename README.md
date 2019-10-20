@@ -28,6 +28,10 @@ When multiple rats work cooperatively, they can use loop-avoiding dead-end elimi
 
 Cooperative rats are exciting from an AI perpective. It is a simple, well-defined problem, where individuals need quite sophisticated reasoning: the algorithm to merge the memory of two rats is a close friend of the unification algorithm that is the core of Prolog. Moreover, these individuals perform best when in a community of similar individuals. This a simplified version of the life of social animals such as ants, rats or humans. Although it is simpler, it keeps many of the key features, such as the mechanisms behind merging what an individual knows with the knowledge of other individuals and the group.
 
+## Artificial intelligence and artificial life
+
+Exactly how intelligence evolved, or even what it is, is still rather a mystery. Perhaps it centres around evolved modules which handle self-contained tasks such as vision, world-mapping, goal-seeking, and which are shared with many other animals, but which have somehow been repurposed and made more flexible, to handle creative tasks that are special to higher animals such as ourselves. Language, tool use, sophisticated social interaction, running through the extraordinary shared endeavours of community knowledge and skills, such as the individual and social genius that created Bach's music or the Internet, all exist on hardware that evolved for far simpler tasks.
+
 ## The future
 
 There are still aspects of cooperating rats that have not been solved here. For example, when two rats meet, there can be ambiguity about how their memories can combine. Handling this ambiguity is not unlike linking variables in Prolog unification.
