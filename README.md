@@ -26,7 +26,10 @@ Trémaux's algorithm is quite efficient. The two-mark avoidance makes it a dead-
 
 When multiple rats work cooperatively, they can use loop-avoiding dead-end elimination algorithms similar to Trémaux's, even when there are loops. For example, if Alice walks in one direction around a loop, and Bert walks the other (Alice and Bert are common names for rats), when they meet up they can compare the paths they took to get there, and realise that they are in a loop rather than an infinitely-repeating sequence. Of course, Alice may have walked round the loop a few times before she meets Bert coming the other way, so her mental picture of the loop may be larger than the actual loop. However, even this defective picture is much better than no picture, and allows her to deploy dead-end elimination and get to the exit much more quickly than if she had never met Bert, who will also benefit from the meeting.
 
+Cooperative rats are exciting from an AI perpective. It is a simple, well-defined problem, where individuals need quite sophisticated reasoning: the algorithm to merge the memory of two rats is a close friend of the unification algorithm that is the core of Prolog. Moreover, these individuals perform best when in a community of similar individuals. This a simplified version of the life of social animals such as ants, rats or humans. Although it is simpler, it keeps many of the key features, such as the mechanisms behind merging what an individual knows with the knowledge of other individuals and the group.
 
+## The future
 
+There are still aspects of cooperating rats that have not been solved here. For example, when two rats meet, there can be ambiguity about how their memories can combine. Handling this ambiguity is not unlike linking variables in Prolog unification.
 
 
